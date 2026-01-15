@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --accent: 142 76% 36%;
+    --gold: 43 96% 56%;
+    
+    /* Theme colors - Dark mode defaults */
+    --bg-primary: 9 9 11;
+    --bg-secondary: 24 24 27;
+    --bg-tertiary: 39 39 42;
+    --text-primary: 244 244 245;
+    --text-secondary: 161 161 170;
+    --text-muted: 113 113 122;
+    --border-color: 39 39 42;
+    --border-subtle: 30 30 35;
+    
+    /* Accent colors */
+    --accent-emerald: 16 185 129;
+    --accent-blue: 59 130 246;
+    --accent-purple: 168 85 247;
+    --accent-rose: 244 63 94;
+    --accent-amber: 245 158 11;
+    --accent-cyan: 6 182 212;
+    
+    /* Active accent (default emerald) */
+    --accent-rgb: var(--accent-emerald);
+  }
+  
+  /* Light mode */
+  .light {
+    --bg-primary: 255 255 255;
+    --bg-secondary: 244 244 245;
+    --bg-tertiary: 228 228 231;
+    --text-primary: 24 24 27;
+    --text-secondary: 63 63 70;
+    --text-muted: 113 113 122;
+    --border-color: 212 212 216;
+    --border-subtle: 229 229 231;
+  }
+  
+  /* Accent color classes */
+  .accent-emerald { --accent-rgb: var(--accent-emerald); }
+  .accent-blue { --accent-rgb: var(--accent-blue); }
+  .accent-purple { --accent-rgb: var(--accent-purple); }
+  .accent-rose { --accent-rgb: var(--accent-rose); }
+  .accent-amber { --accent-rgb: var(--accent-amber); }
+  .accent-cyan { --accent-rgb: var(--accent-cyan); }
+  
+  body {
+    background-color: rgb(var(--bg-primary));
+    color: rgb(var(--text-primary));
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background-color: rgb(var(--bg-secondary));
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-600 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-500;
+  }
+  
+  /* Themed ring-offset for focus states */
+  .ring-offset-themed-primary {
+    --tw-ring-offset-color: rgb(var(--bg-primary));
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    --tw-ring-offset-color: rgb(var(--bg-primary));
+  }
+  
+  .btn-primary {
+    background-color: rgb(var(--accent-rgb));
+    @apply text-white hover:opacity-90;
+    --tw-ring-color: rgb(var(--accent-rgb));
+  }
+  
+  .btn-secondary {
+    background-color: rgb(var(--bg-tertiary));
+    color: rgb(var(--text-primary));
+    @apply hover:opacity-80;
+    --tw-ring-color: rgb(var(--bg-tertiary));
+  }
+  
+  .btn-danger {
+    @apply bg-red-600/20 text-red-400 hover:bg-red-600/30 focus:ring-red-500;
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent hover:bg-zinc-800/50;
+    color: rgb(var(--text-secondary));
+  }
+  .btn-ghost:hover {
+    color: rgb(var(--text-primary));
+  }
+  
+  .card {
+    background-color: rgb(var(--bg-secondary) / 0.5);
+    border: 1px solid rgb(var(--border-color));
+    @apply backdrop-blur-sm rounded-2xl;
+  }
+  
+  .input {
+    @apply w-full px-4 py-2.5 rounded-lg;
+    background-color: rgb(var(--bg-secondary));
+    border: 1px solid rgb(var(--border-color));
+    color: rgb(var(--text-primary));
+    @apply placeholder:text-zinc-500 focus:outline-none focus:ring-1;
+    --tw-ring-color: rgb(var(--accent-rgb));
+    border-color: rgb(var(--border-color));
+    @apply transition-colors duration-200;
+  }
+  .input:focus {
+    border-color: rgb(var(--accent-rgb));
+  }
+  
+  .timer-display {
+    font-variant-numeric: tabular-nums;
+    @apply font-mono tracking-tight;
+  }
+  
+  .chip {
+    @apply inline-flex items-center justify-center w-10 h-10 rounded-full font-bold text-xs;
+    @apply border-2 border-dashed shadow-lg;
+  }
+  
+  /* Theme-aware text colors */
+  .text-themed-primary { color: rgb(var(--text-primary)); }
+  .text-themed-secondary { color: rgb(var(--text-secondary)); }
+  .text-themed-muted { color: rgb(var(--text-muted)); }
+  .bg-themed-primary { background-color: rgb(var(--bg-primary)); }
+  .bg-themed-secondary { background-color: rgb(var(--bg-secondary)); }
+  .bg-themed-tertiary { background-color: rgb(var(--bg-tertiary)); }
+  .border-themed { border-color: rgb(var(--border-color)); }
+  .border-themed-subtle { border-color: rgb(var(--border-subtle)); }
+  
+  /* Accent color utilities */
+  .text-accent { color: rgb(var(--accent-rgb)); }
+  .bg-accent { background-color: rgb(var(--accent-rgb)); }
+  .border-accent { border-color: rgb(var(--accent-rgb)); }
+  .ring-accent { --tw-ring-color: rgb(var(--accent-rgb)); }
+}
+
+/* Timer pulse animation when running */
+.timer-running {
+  animation: timerPulse 1s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* Break indicator */
+.break-indicator {
+  @apply bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-500/50;
+}

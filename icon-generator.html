@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PokerPulsePro Icon Generator</title>
+  <style>
+    body { font-family: system-ui; padding: 20px; background: #1a1a1a; color: white; }
+    canvas { border: 1px solid #333; margin: 10px; }
+    .row { display: flex; gap: 20px; flex-wrap: wrap; }
+    button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>PokerPulsePro Icon Generator</h1>
+  <p>Right-click each canvas and "Save image as..." to download the PNG files.</p>
+  <div class="row">
+    <div>
+      <h3>512x512 (source)</h3>
+      <canvas id="c512" width="512" height="512"></canvas>
+    </div>
+    <div>
+      <h3>256x256 (128x128@2x)</h3>
+      <canvas id="c256" width="256" height="256"></canvas>
+    </div>
+    <div>
+      <h3>128x128</h3>
+      <canvas id="c128" width="128" height="128"></canvas>
+    </div>
+    <div>
+      <h3>32x32</h3>
+      <canvas id="c32" width="32" height="32"></canvas>
+    </div>
+  </div>
+  
+  <script>
+    function drawIcon(ctx, size) {
+      const s = size / 512;
+      
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, size, size);
+      grad.addColorStop(0, '#10b981');
+      grad.addColorStop(1, '#059669');
+      
+      // Rounded rectangle background
+      const r = 96 * s;
+      const m = 32 * s;
+      ctx.beginPath();
+      ctx.roundRect(m, m, size - m*2, size - m*2, r);
+      ctx.fillStyle = grad;
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 16 * s;
+      ctx.shadowOffsetY = 4 * s;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      // Spade symbol
+      ctx.save();
+      ctx.translate(size/2, size/2 + 24*s);
+      ctx.fillStyle = '#ffffff';
+      
+      // Draw spade using path
+      ctx.beginPath();
+      const scale = s * 1.1;
+      
+      // Top of spade (heart shape inverted)
+      ctx.moveTo(0, -140 * scale);
+      ctx.bezierCurveTo(
+        -30 * scale, -120 * scale,
+        -110 * scale, -60 * scale,
+        -110 * scale, 30 * scale
+      );
+      ctx.bezierCurveTo(
+        -110 * scale, 90 * scale,
+        -70 * scale, 115 * scale,
+        -35 * scale, 115 * scale
+      );
+      ctx.bezierCurveTo(
+        -15 * scale, 115 * scale,
+        0, 90 * scale,
+        0, 70 * scale
+      );
+      ctx.bezierCurveTo(
+        0, 90 * scale,
+        15 * scale, 115 * scale,
+        35 * scale, 115 * scale
+      );
+      ctx.bezierCurveTo(
+        70 * scale, 115 * scale,
+        110 * scale, 90 * scale,
+        110 * scale, 30 * scale
+      );
+      ctx.bezierCurveTo(
+        110 * scale, -60 * scale,
+        30 * scale, -120 * scale,
+        0, -140 * scale
+      );
+      ctx.fill();
+      
+      // Stem
+      ctx.beginPath();
+      ctx.moveTo(-25 * scale, 90 * scale);
+      ctx.lineTo(-35 * scale, 160 * scale);
+      ctx.lineTo(35 * scale, 160 * scale);
+      ctx.lineTo(25 * scale, 90 * scale);
+      ctx.bezierCurveTo(15 * scale, 110 * scale, -15 * scale, 110 * scale, -25 * scale, 90 * scale);
+      ctx.fill();
+      
+      ctx.restore();
+    }
+    
+    [512, 256, 128, 32].forEach(size => {
+      const canvas = document.getElementById('c' + size);
+      const ctx = canvas.getContext('2d');
+      drawIcon(ctx, size);
+    });
+  </script>
+</body>
+</html>
