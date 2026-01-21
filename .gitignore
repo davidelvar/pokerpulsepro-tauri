@@ -30,3 +30,6 @@ npm-debug.log*
 
 # Local Tauri development
 src-tauri/gen/schemas/
+
+# Separate projects
+pokerpulsepro-landingpage/

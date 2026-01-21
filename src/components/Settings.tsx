@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Tournament, SoundSettings, ThemeSettings, ThemeMode, AccentColor, TournamentHistoryEntry } from '../types'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs'
 import { calculatePrizePool, formatCurrency } from '../utils'
 import { AlertModal, ConfirmModal, PromptModal } from './Modal'
+import { SUPPORTED_LANGUAGES } from '../i18n'
 
 interface SettingsProps {
   tournament: Tournament
@@ -47,6 +49,7 @@ const CHIP_PRESETS = [
 ]
 
 export function Settings({ tournament, setTournament, soundSettings, setSoundSettings, themeSettings, setThemeSettings, playTestSound, resetTournament }: SettingsProps) {
+  const { t, i18n } = useTranslation()
   const [tournamentHistory, setTournamentHistory] = useState<TournamentHistoryEntry[]>([])
   const [showHistory, setShowHistory] = useState(true)
   const [modal, setModal] = useState<ModalState>({ type: 'none' })
@@ -116,7 +119,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
         })
         if (filePath) {
           await writeTextFile(filePath, jsonString)
-          showAlert('Export Complete', 'Tournament config exported successfully!', 'success')
+          showAlert(t('settings.exportComplete'), t('settings.exportSuccess'), 'success')
         }
       } catch (err) {
         console.error('Failed to export:', err)
@@ -148,7 +151,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
         }
       } catch (err) {
         console.error('Failed to import:', err)
-        showAlert('Import Failed', 'Failed to import tournament config', 'error')
+        showAlert(t('settings.importFailed'), t('settings.importFailedMsg'), 'error')
       }
     } else {
       // Browser fallback
@@ -163,7 +166,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
             const imported = JSON.parse(text)
             applyImportedConfig(imported)
           } catch (err) {
-            showAlert('Invalid File', 'The selected file is not a valid JSON file', 'error')
+            showAlert(t('settings.invalidFile'), t('settings.invalidFileMsg'), 'error')
           }
         }
       }
@@ -188,7 +191,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
       is_running: false,
       players: [], // Reset players on import
     })
-    alert('Tournament config imported successfully!')
+    showAlert(t('settings.exportComplete'), t('settings.exportSuccess'), 'success')
   }
 
   // Complete tournament and add to history
@@ -210,7 +213,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
     }
 
     saveHistory([entry, ...tournamentHistory].slice(0, 50)) // Keep last 50
-    showAlert('Tournament Complete', 'Tournament has been saved to history!', 'success')
+    showAlert(t('settings.tournamentComplete'), t('settings.tournamentSaved'), 'success')
   }
 
   const deleteHistoryEntry = (id: string) => {
@@ -219,8 +222,8 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
 
   const clearHistory = () => {
     showConfirm(
-      'Clear History',
-      'Are you sure you want to clear all tournament history? This action cannot be undone.',
+      t('settings.clearHistory'),
+      t('settings.clearHistoryConfirm'),
       () => saveHistory([]),
       'danger'
     )
@@ -267,15 +270,19 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
     }
   }
 
+  const changeLanguage = (langCode: string) => {
+    i18n.changeLanguage(langCode)
+  }
+
   return (
     <div className="space-y-6">
       {/* Appearance */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-themed-primary mb-4">Appearance</h3>
-        <div className="grid grid-cols-2 gap-6">
+        <h3 className="text-lg font-semibold text-themed-primary mb-4">{t('settings.appearance')}</h3>
+        <div className="grid grid-cols-3 gap-6">
           {/* Light/Dark Mode */}
           <div>
-            <div className="text-sm text-themed-muted mb-3">Theme Mode</div>
+            <div className="text-sm text-themed-muted mb-3">{t('settings.themeMode')}</div>
             <div className="flex gap-3">
               {(['dark', 'light'] as ThemeMode[]).map((mode) => (
                 <button
@@ -290,7 +297,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                   <div className="flex items-center justify-center gap-3">
                     <span className="text-2xl">{mode === 'dark' ? '🌙' : '☀️'}</span>
                     <span className={`font-medium ${themeSettings.mode === mode ? 'text-accent' : 'text-themed-secondary'}`}>
-                      {mode === 'dark' ? 'Dark' : 'Light'}
+                      {t(`settings.${mode}`)}
                     </span>
                   </div>
                 </button>
@@ -300,7 +307,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
           
           {/* Accent Color */}
           <div>
-            <div className="text-sm text-themed-muted mb-3">Accent Color</div>
+            <div className="text-sm text-themed-muted mb-3">{t('settings.accentColor')}</div>
             <div className="grid grid-cols-6 gap-3">
               {accentColors.map((color) => (
                 <button
@@ -322,27 +329,44 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
               ))}
             </div>
           </div>
+
+          {/* Language Selector */}
+          <div>
+            <div className="text-sm text-themed-muted mb-3">{t('settings.language')}</div>
+            <select
+              value={SUPPORTED_LANGUAGES.find(l => i18n.language === l.code || i18n.language.startsWith(l.code + '-'))?.code || 'en'}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="input w-full"
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.flag} {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
+
       {/* Tournament Settings - Combined */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-themed-primary mb-4">Tournament Settings</h3>
+        <h3 className="text-lg font-semibold text-themed-primary mb-4">{t('settings.tournament')}</h3>
         <div className="space-y-6">
           {/* Tournament Name & Currency Row */}
           <div className="grid grid-cols-4 gap-4">
             <div className="col-span-2">
-              <label className="text-sm text-themed-muted mb-2 block">Tournament Name</label>
+              <label className="text-sm text-themed-muted mb-2 block">{t('settings.tournamentName')}</label>
               <input
                 type="text"
                 value={tournament.name}
                 onChange={(e) => setTournament({ ...tournament, name: e.target.value })}
                 className="input"
-                placeholder="Friday Night Poker"
+                placeholder={t('settings.tournamentNamePlaceholder')}
               />
             </div>
             <div>
-              <label className="text-sm text-themed-muted mb-2 block">Currency</label>
+              <label className="text-sm text-themed-muted mb-2 block">{t('settings.currency')}</label>
               <select
                 value={tournament.currency_symbol}
                 onChange={(e) => setTournament({ ...tournament, currency_symbol: e.target.value })}
@@ -356,7 +380,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
               </select>
             </div>
             <div>
-              <label className="text-sm text-themed-muted mb-2 block">Buy-in Amount</label>
+              <label className="text-sm text-themed-muted mb-2 block">{t('settings.buyinAmount')}</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-themed-muted">
                   {tournament.currency_symbol}
@@ -375,7 +399,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
           {/* Rebuys & Add-ons Row */}
           <div className="grid grid-cols-4 gap-4">
             <div>
-              <label className="text-sm text-themed-muted mb-2 block">Rebuy Amount</label>
+              <label className="text-sm text-themed-muted mb-2 block">{t('settings.rebuyAmount')}</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-themed-muted">
                   {tournament.currency_symbol}
@@ -390,7 +414,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
               </div>
             </div>
             <div>
-              <label className="text-sm text-themed-muted mb-2 block">Rebuy Chips</label>
+              <label className="text-sm text-themed-muted mb-2 block">{t('settings.rebuyChips')}</label>
               <input
                 type="number"
                 value={tournament.rebuy_chips}
@@ -400,7 +424,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
               />
             </div>
             <div>
-              <label className="text-sm text-themed-muted mb-2 block">Add-on Amount</label>
+              <label className="text-sm text-themed-muted mb-2 block">{t('settings.addonAmount')}</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-themed-muted">
                   {tournament.currency_symbol}
@@ -415,7 +439,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
               </div>
             </div>
             <div>
-              <label className="text-sm text-themed-muted mb-2 block">Add-on Chips</label>
+              <label className="text-sm text-themed-muted mb-2 block">{t('settings.addonChips')}</label>
               <input
                 type="number"
                 value={tournament.addon_chips}
@@ -428,7 +452,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
 
           {/* Starting Chips */}
           <div>
-            <label className="text-sm text-themed-muted mb-2 block">Starting Chips</label>
+            <label className="text-sm text-themed-muted mb-2 block">{t('settings.startingChips')}</label>
             <div className="flex items-center gap-4">
               <div className="flex gap-2">
                 {CHIP_PRESETS.map((preset) => (
@@ -440,13 +464,13 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                         ? 'bg-accent/20 border border-emerald-600/50 text-accent'
                         : 'bg-themed-tertiary hover:bg-themed-secondary text-themed-secondary'
                     }`}
-                    title={preset.description}
+                    title={t(`settings.chipPresets.${preset.name.toLowerCase().replace(' ', '')}Desc`)}
                   >
                     <div className="font-semibold text-sm">{preset.chips.toLocaleString()}</div>
                   </button>
                 ))}
               </div>
-              <span className="text-themed-muted">or</span>
+              <span className="text-themed-muted">{t('settings.or')}</span>
               <input
                 type="number"
                 value={tournament.starting_chips}
@@ -460,7 +484,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
 
           {/* Chip Breakdown */}
           <div>
-            <div className="text-sm text-themed-muted mb-2">Suggested chip distribution for {tournament.starting_chips.toLocaleString()} stack</div>
+            <div className="text-sm text-themed-muted mb-2">{t('settings.suggestedChips', { chips: tournament.starting_chips.toLocaleString() })}</div>
             <div className="flex flex-wrap gap-4">
               {getChipBreakdown(tournament.starting_chips).map((chip) => (
                 <div key={chip.value} className="flex items-center gap-2">
@@ -484,14 +508,14 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
 
       {/* Sound Settings - Combined */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-themed-primary mb-4">Sound Settings</h3>
+        <h3 className="text-lg font-semibold text-themed-primary mb-4">{t('settings.sound')}</h3>
         <div className="grid grid-cols-2 gap-6">
           {/* Level Change Sound */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-themed-primary font-medium">Level Change Sound</div>
-                <div className="text-sm text-themed-muted">Play a sound when the level changes</div>
+                <div className="text-themed-primary font-medium">{t('settings.levelChangeSound')}</div>
+                <div className="text-sm text-themed-muted">{t('settings.levelChangeSoundDesc')}</div>
               </div>
               <button
                 onClick={() => setSoundSettings({ ...soundSettings, enabled: !soundSettings.enabled })}
@@ -517,7 +541,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                     }`}
                   >
                     <div className="text-xl mb-1">🔔</div>
-                    <div className="text-xs font-medium">Bell</div>
+                    <div className="text-xs font-medium">{t('settings.soundBell')}</div>
                   </button>
                   <button
                     onClick={() => setSoundSettings({ ...soundSettings, soundType: 'evil-laugh' })}
@@ -528,7 +552,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                     }`}
                   >
                     <div className="text-xl mb-1">😈</div>
-                    <div className="text-xs font-medium">Evil Laugh</div>
+                    <div className="text-xs font-medium">{t('settings.soundEvilLaugh')}</div>
                   </button>
                   <button
                     onClick={selectCustomSound}
@@ -539,13 +563,13 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                     }`}
                   >
                     <div className="text-xl mb-1">📁</div>
-                    <div className="text-xs font-medium">Custom</div>
+                    <div className="text-xs font-medium">{t('settings.soundCustom')}</div>
                   </button>
                 </div>
 
                 <div>
                   <label className="text-sm text-themed-muted mb-2 block">
-                    Volume: {Math.round(soundSettings.volume * 100)}%
+                    {t('settings.volume')}: {Math.round(soundSettings.volume * 100)}%
                   </label>
                   <input
                     type="range"
@@ -562,7 +586,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                   </svg>
-                  Test Sound
+                  {t('settings.testSound')}
                 </button>
               </>
             )}
@@ -572,8 +596,8 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-themed-primary font-medium">Warning Sounds</div>
-                <div className="text-sm text-themed-muted">Beep when time is running low</div>
+                <div className="text-themed-primary font-medium">{t('settings.warningSound')}</div>
+                <div className="text-sm text-themed-muted">{t('settings.warningSoundDesc')}</div>
               </div>
               <button
                 onClick={() => setSoundSettings({ ...soundSettings, warningEnabled: !soundSettings.warningEnabled })}
@@ -596,7 +620,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                     onChange={(e) => setSoundSettings({ ...soundSettings, warningAt60: e.target.checked })}
                     className="w-4 h-4 rounded bg-themed-secondary border-zinc-600 text-emerald-500 focus:ring-emerald-500"
                   />
-                  <span className="text-themed-secondary text-sm">60 seconds warning</span>
+                  <span className="text-themed-secondary text-sm">{t('settings.warning60')}</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -605,15 +629,15 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                     onChange={(e) => setSoundSettings({ ...soundSettings, warningAt30: e.target.checked })}
                     className="w-4 h-4 rounded bg-themed-secondary border-zinc-600 text-emerald-500 focus:ring-emerald-500"
                   />
-                  <span className="text-themed-secondary text-sm">30 seconds warning</span>
+                  <span className="text-themed-secondary text-sm">{t('settings.warning30')}</span>
                 </label>
               </div>
             )}
 
             <div className="flex items-center justify-between pt-4 border-t border-themed">
               <div>
-                <div className="text-themed-primary font-medium">Auto-Pause on Break</div>
-                <div className="text-sm text-themed-muted">Pause timer when a break starts</div>
+                <div className="text-themed-primary font-medium">{t('settings.autoPauseBreak')}</div>
+                <div className="text-sm text-themed-muted">{t('settings.autoPauseBreakDesc')}</div>
               </div>
               <button
                 onClick={() => setSoundSettings({ ...soundSettings, autoPauseOnBreak: !soundSettings.autoPauseOnBreak })}
@@ -638,31 +662,31 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
             </svg>
-            Keyboard Shortcuts
+            {t('settings.shortcuts')}
           </h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
-              <span className="text-themed-secondary">Play / Pause</span>
+              <span className="text-themed-secondary">{t('settings.playPause')}</span>
               <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">Space</kbd>
             </div>
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
-              <span className="text-themed-secondary">Prev Level</span>
+              <span className="text-themed-secondary">{t('settings.prevLevel')}</span>
               <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">←</kbd>
             </div>
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
-              <span className="text-themed-secondary">Next Level</span>
+              <span className="text-themed-secondary">{t('settings.nextLevel')}</span>
               <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">→</kbd>
             </div>
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
-              <span className="text-themed-secondary">Add 1 Min</span>
+              <span className="text-themed-secondary">{t('settings.addMin')}</span>
               <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">+</kbd>
             </div>
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
-              <span className="text-themed-secondary">Remove 1 Min</span>
+              <span className="text-themed-secondary">{t('settings.removeMin')}</span>
               <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">-</kbd>
             </div>
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
-              <span className="text-themed-secondary">Fullscreen</span>
+              <span className="text-themed-secondary">{t('settings.fullscreen')}</span>
               <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">F</kbd>
             </div>
           </div>
@@ -674,7 +698,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
             </svg>
-            Data Management
+            {t('settings.dataManagement')}
           </h3>
           <div className="space-y-4">
             <div className="flex gap-3">
@@ -682,13 +706,13 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                Export
+                {t('settings.export')}
               </button>
               <button onClick={importTournament} className="btn btn-secondary flex-1 flex items-center justify-center gap-2">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Import
+                {t('settings.import')}
               </button>
             </div>
             <div className="p-3 bg-accent/10 rounded-lg border border-accent/20">
@@ -696,10 +720,10 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Auto-Save Enabled
+                {t('settings.autoSaveEnabled')}
               </div>
               <p className="text-xs text-themed-muted mt-1">
-                Progress saved automatically. Timer paused on restore.
+                {t('settings.autoSaveDesc')}
               </p>
             </div>
           </div>
@@ -713,7 +737,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Tournament History
+            {t('settings.history')}
             {tournamentHistory.length > 0 && (
               <span className="text-sm font-normal text-themed-muted">({tournamentHistory.length})</span>
             )}
@@ -722,7 +746,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
             onClick={() => setShowHistory(!showHistory)}
             className="text-sm text-accent hover:underline"
           >
-            {showHistory ? 'Hide' : 'Show'}
+            {showHistory ? t('settings.hideHistory') : t('settings.showHistory')}
           </button>
         </div>
 
@@ -730,7 +754,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
           <div className="space-y-3">
             {tournamentHistory.length === 0 ? (
               <p className="text-themed-muted text-sm text-center py-4">
-                No tournament history yet. Complete tournaments will appear here.
+                {t('settings.noHistory')}
               </p>
             ) : (
               <>
@@ -740,7 +764,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                       <div className="flex items-center gap-2">
                         <span className="text-themed-primary font-medium">{entry.name}</span>
                         <span className="text-xs text-themed-muted">
-                          {new Date(entry.date).toLocaleDateString()}
+                          {new Date(entry.date).toLocaleDateString(i18n.language)}
                         </span>
                       </div>
                       <div className="text-sm text-themed-secondary flex items-center gap-3 mt-1">
@@ -755,7 +779,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                     <button
                       onClick={() => deleteHistoryEntry(entry.id)}
                       className="p-1 text-themed-muted hover:text-red-400 transition-colors"
-                      title="Delete entry"
+                      title={t('modal.delete')}
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -765,7 +789,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                 ))}
                 <div className="flex justify-end">
                   <button onClick={clearHistory} className="text-sm text-red-400 hover:underline">
-                    Clear All History
+                    {t('settings.clearHistory')}
                   </button>
                 </div>
               </>
@@ -778,11 +802,11 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
       <div className="card p-6 border-red-500/20">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-red-400">Reset Tournament</h3>
-            <div className="text-sm text-themed-muted">Clear all players and reset timer to Level 1</div>
+            <h3 className="text-lg font-semibold text-red-400">{t('settings.resetTournament')}</h3>
+            <div className="text-sm text-themed-muted">{t('settings.resetTournamentDesc')}</div>
           </div>
           <button onClick={resetTournament} className="btn btn-danger">
-            Reset Tournament
+            {t('settings.resetTournament')}
           </button>
         </div>
       </div>

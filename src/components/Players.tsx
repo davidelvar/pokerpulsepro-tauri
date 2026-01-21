@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Tournament, Player } from '../types'
 import { formatCurrency, generateId } from '../utils'
 
@@ -10,6 +11,7 @@ interface PlayersProps {
 type Filter = 'all' | 'active' | 'eliminated'
 
 export function Players({ tournament, setTournament }: PlayersProps) {
+  const { t } = useTranslation()
   const [newPlayerName, setNewPlayerName] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
@@ -80,25 +82,25 @@ export function Players({ tournament, setTournament }: PlayersProps) {
       {/* Header Stats */}
       <div className="grid grid-cols-5 gap-4 mb-6">
         <div className="card p-4">
-          <div className="text-themed-muted text-sm">Total Players</div>
+          <div className="text-themed-muted text-sm">{t('players.totalPlayers')}</div>
           <div className="text-2xl font-bold text-themed-primary">{tournament.players.length}</div>
         </div>
         <div className="card p-4">
-          <div className="text-themed-muted text-sm">Active</div>
+          <div className="text-themed-muted text-sm">{t('players.activePlayers')}</div>
           <div className="text-2xl font-bold text-accent">
             {tournament.players.filter(p => !p.eliminated).length}
           </div>
         </div>
         <div className="card p-4">
-          <div className="text-themed-muted text-sm">Buy-ins</div>
+          <div className="text-themed-muted text-sm">{t('players.buyins')}</div>
           <div className="text-2xl font-bold text-themed-primary">{totalBuyins}</div>
         </div>
         <div className="card p-4">
-          <div className="text-themed-muted text-sm">Rebuys</div>
+          <div className="text-themed-muted text-sm">{t('players.rebuys')}</div>
           <div className="text-2xl font-bold text-themed-primary">{totalRebuys}</div>
         </div>
         <div className="card p-4">
-          <div className="text-themed-muted text-sm">Add-ons</div>
+          <div className="text-themed-muted text-sm">{t('players.addons')}</div>
           <div className="text-2xl font-bold text-themed-primary">{totalAddons}</div>
         </div>
       </div>
@@ -111,11 +113,11 @@ export function Players({ tournament, setTournament }: PlayersProps) {
             value={newPlayerName}
             onChange={(e) => setNewPlayerName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addPlayer()}
-            placeholder="Enter player name..."
+            placeholder={t('players.enterName')}
             className="input flex-1"
           />
           <button onClick={addPlayer} className="btn btn-primary">
-            Add Player
+            {t('players.addPlayer')}
           </button>
         </div>
       </div>
@@ -133,7 +135,7 @@ export function Players({ tournament, setTournament }: PlayersProps) {
                   : 'text-themed-muted hover:text-themed-primary'
               }`}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {t(`players.filter.${f}`)}
             </button>
           ))}
         </div>
@@ -142,7 +144,7 @@ export function Players({ tournament, setTournament }: PlayersProps) {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search players..."
+          placeholder={t('players.search')}
           className="input w-64"
         />
       </div>
@@ -172,7 +174,7 @@ export function Players({ tournament, setTournament }: PlayersProps) {
 
             {/* Buy-ins Control */}
             <div className="flex items-center gap-2">
-              <span className="text-themed-muted text-sm w-16">Buy-ins</span>
+              <span className="text-themed-muted text-sm w-16">{t('players.buyins')}</span>
               <button
                 onClick={() => updatePlayer(player.id, { buyins: Math.max(1, player.buyins - 1) })}
                 className="btn btn-ghost p-1 w-8 h-8"
@@ -191,7 +193,7 @@ export function Players({ tournament, setTournament }: PlayersProps) {
 
             {/* Rebuys Control */}
             <div className="flex items-center gap-2">
-              <span className="text-themed-muted text-sm w-16">Rebuys</span>
+              <span className="text-themed-muted text-sm w-16">{t('players.rebuys')}</span>
               <button
                 onClick={() => updatePlayer(player.id, { rebuys: Math.max(0, player.rebuys - 1) })}
                 className="btn btn-ghost p-1 w-8 h-8"
@@ -210,7 +212,7 @@ export function Players({ tournament, setTournament }: PlayersProps) {
 
             {/* Add-ons Control */}
             <div className="flex items-center gap-2">
-              <span className="text-themed-muted text-sm w-16">Add-ons</span>
+              <span className="text-themed-muted text-sm w-16">{t('players.addons')}</span>
               <button
                 onClick={() => updatePlayer(player.id, { addons: Math.max(0, player.addons - 1) })}
                 className="btn btn-ghost p-1 w-8 h-8"
@@ -234,14 +236,14 @@ export function Players({ tournament, setTournament }: PlayersProps) {
                   onClick={() => reinstatePlayer(player.id)}
                   className="btn btn-ghost text-accent text-sm"
                 >
-                  Reinstate
+                  {t('players.reinstate')}
                 </button>
               ) : (
                 <button
                   onClick={() => eliminatePlayer(player.id)}
                   className="btn btn-danger text-sm"
                 >
-                  Eliminate
+                  {t('players.eliminate')}
                 </button>
               )}
               <button
@@ -258,7 +260,7 @@ export function Players({ tournament, setTournament }: PlayersProps) {
 
         {filteredPlayers.length === 0 && (
           <div className="text-center py-12 text-themed-muted">
-            {search ? 'No players match your search' : 'No players yet. Add some above!'}
+            {search ? t('players.noMatch') : t('players.noPlayers')}
           </div>
         )}
       </div>

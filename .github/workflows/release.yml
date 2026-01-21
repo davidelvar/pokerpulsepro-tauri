@@ -50,6 +50,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
           tagName: v__VERSION__
           releaseName: 'PokerPulsePro v__VERSION__'
@@ -57,3 +58,4 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+          includeUpdaterJson: true

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Tournament, Tab, SoundSettings, ThemeSettings, TournamentHistoryEntry } from './types'
 import { mockApi } from './api'
-import { calculatePrizePool } from './utils'
+import { calculatePrizePool, checkForUpdates, UpdateInfo } from './utils'
 import { Timer } from './components/Timer'
 import { Players } from './components/Players'
 import { Blinds } from './components/Blinds'
@@ -12,9 +12,12 @@ import { Navigation } from './components/Navigation'
 import { Header } from './components/Header'
 import { ConfirmModal } from './components/Modal'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { emit, listen } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
 
-// Check if running in Tauri
-const isTauri = typeof window !== 'undefined' && '__TAURI__' in window
+// Check if running in Tauri - use function to check at runtime
+// Tauri v2 uses __TAURI_INTERNALS__, v1 used __TAURI__
+const checkIsTauri = () => typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
 
 const STORAGE_KEYS = {
   tournament: 'pokerpulse_tournament',
@@ -122,9 +125,18 @@ export default function App() {
   const [soundSettings, setSoundSettings] = useState<SoundSettings>(loadSavedSoundSettings)
   const [themeSettings, setThemeSettings] = useState<ThemeSettings>(loadSavedTheme)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+  const [isProjectorOpen, setIsProjectorOpen] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const prevLevelRef = useRef(tournament.current_level)
   const warningSoundPlayedRef = useRef<{ 60: boolean; 30: boolean }>({ 60: false, 30: false })
+
+  // Check for updates on mount
+  useEffect(() => {
+    checkForUpdates().then(info => {
+      if (info) setUpdateInfo(info)
+    })
+  }, [])
 
   // Simulate loading / initialization
   useEffect(() => {
@@ -440,6 +452,96 @@ export default function App() {
     }
   }, [tournament])
 
+  // Projector window management
+  const toggleProjector = useCallback(async () => {
+    if (!checkIsTauri()) {
+      console.log('Not in Tauri environment, cannot open projector')
+      return
+    }
+    
+    console.log('Toggling projector window...')
+    try {
+      const isOpen = await invoke<boolean>('is_projector_open')
+      console.log('Projector is currently open:', isOpen)
+      if (isOpen) {
+        await invoke('close_projector_window')
+        setIsProjectorOpen(false)
+        console.log('Projector window closed')
+      } else {
+        await invoke('open_projector_window')
+        setIsProjectorOpen(true)
+        console.log('Projector window opened')
+      }
+    } catch (e) {
+      console.error('Failed to toggle projector:', e)
+      // Try to open anyway if status check fails
+      try {
+        await invoke('open_projector_window')
+        setIsProjectorOpen(true)
+        console.log('Projector window opened (fallback)')
+      } catch (e2) {
+        console.error('Fallback also failed:', e2)
+      }
+    }
+  }, [])
+
+  // Emit projector state whenever tournament or theme changes
+  useEffect(() => {
+    if (!checkIsTauri() || !isProjectorOpen) return
+    
+    const emitState = async () => {
+      try {
+        await emit('projector-state-update', {
+          tournament,
+          themeMode: themeSettings.mode,
+          accentColor: themeSettings.accent,
+        })
+      } catch (e) {
+        console.error('Failed to emit projector state:', e)
+      }
+    }
+    
+    emitState()
+  }, [tournament, themeSettings, isProjectorOpen])
+
+  // Listen for projector ready signal to send initial state
+  useEffect(() => {
+    if (!checkIsTauri()) return
+    
+    const unlisten = listen('projector-ready', async () => {
+      try {
+        await emit('projector-state-update', {
+          tournament,
+          themeMode: themeSettings.mode,
+          accentColor: themeSettings.accent,
+        })
+      } catch (e) {
+        console.error('Failed to send initial projector state:', e)
+      }
+    })
+
+    return () => {
+      unlisten.then(fn => fn())
+    }
+  }, [tournament, themeSettings])
+
+  // Check projector status periodically
+  useEffect(() => {
+    if (!checkIsTauri()) return
+    
+    const checkProjectorStatus = async () => {
+      try {
+        const isOpen = await invoke<boolean>('is_projector_open')
+        setIsProjectorOpen(isOpen)
+      } catch (e) {
+        // Ignore errors
+      }
+    }
+
+    const interval = setInterval(checkProjectorStatus, 2000)
+    return () => clearInterval(interval)
+  }, [])
+
   // Loading Screen
   if (isLoading) {
     return (
@@ -476,6 +578,9 @@ export default function App() {
         setTournament={setTournament}
         isFullscreen={isFullscreen}
         toggleFullscreen={toggleFullscreen}
+        updateInfo={updateInfo}
+        isProjectorOpen={isProjectorOpen}
+        onToggleProjector={toggleProjector}
       />
       
       <div className="flex-1 flex overflow-hidden">

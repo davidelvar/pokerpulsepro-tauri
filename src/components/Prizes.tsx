@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Tournament } from '../types'
 import { calculatePrizePool, formatCurrency, getEliminatedPlayers } from '../utils'
 
@@ -17,6 +18,7 @@ const PAYOUT_TEMPLATES: Record<number, number[]> = {
 }
 
 export function Prizes({ tournament }: PrizesProps) {
+  const { t } = useTranslation()
   const [paidPlaces, setPaidPlaces] = useState(3)
   const [percentages, setPercentages] = useState<number[]>([50, 30, 20])
 
@@ -49,25 +51,25 @@ export function Prizes({ tournament }: PrizesProps) {
     <div className="max-w-4xl mx-auto">
       {/* Prize Pool Summary */}
       <div className="card p-8 mb-6 text-center">
-        <div className="text-themed-muted text-sm mb-2">Total Prize Pool</div>
+        <div className="text-themed-muted text-sm mb-2">{t('prizes.totalPrizePool')}</div>
         <div className="text-5xl font-bold text-accent mb-4">
           {formatCurrency(prizePool, tournament.currency_symbol)}
         </div>
         <div className="flex justify-center gap-8 text-sm">
           <div>
-            <span className="text-themed-muted">Buy-ins: </span>
+            <span className="text-themed-muted">{t('players.buyins')}: </span>
             <span className="text-themed-primary">
               {tournament.players.reduce((s, p) => s + p.buyins, 0)} × {formatCurrency(tournament.buyin_amount, tournament.currency_symbol)}
             </span>
           </div>
           <div>
-            <span className="text-themed-muted">Rebuys: </span>
+            <span className="text-themed-muted">{t('players.rebuys')}: </span>
             <span className="text-themed-primary">
               {tournament.players.reduce((s, p) => s + p.rebuys, 0)} × {formatCurrency(tournament.rebuy_amount, tournament.currency_symbol)}
             </span>
           </div>
           <div>
-            <span className="text-themed-muted">Add-ons: </span>
+            <span className="text-themed-muted">{t('players.addons')}: </span>
             <span className="text-themed-primary">
               {tournament.players.reduce((s, p) => s + p.addons, 0)} × {formatCurrency(tournament.addon_amount, tournament.currency_symbol)}
             </span>
@@ -78,11 +80,11 @@ export function Prizes({ tournament }: PrizesProps) {
       <div className="grid grid-cols-2 gap-6">
         {/* Payout Structure */}
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-themed-primary mb-4">Payout Structure</h3>
+          <h3 className="text-lg font-semibold text-themed-primary mb-4">{t('prizes.payoutStructure')}</h3>
           
           {/* Places Selector */}
           <div className="mb-6">
-            <label className="text-sm text-themed-muted mb-2 block">Paid Places</label>
+            <label className="text-sm text-themed-muted mb-2 block">{t('prizes.paidPlaces')}</label>
             <div className="flex gap-2">
               {[2, 3, 4, 5, 6, 7, 8].map((n) => (
                 <button
@@ -132,14 +134,14 @@ export function Prizes({ tournament }: PrizesProps) {
 
           {/* Validation */}
           <div className={`mt-4 text-sm ${isValid ? 'text-accent' : 'text-red-400'}`}>
-            Total: {totalPercentage.toFixed(1)}%
-            {!isValid && ' (must equal 100%)'}
+            {t('prizes.total')}: {totalPercentage.toFixed(1)}%
+            {!isValid && ` (${t('prizes.mustEqual100')})`}
           </div>
         </div>
 
         {/* Results / Standings */}
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-themed-primary mb-4">Final Standings</h3>
+          <h3 className="text-lg font-semibold text-themed-primary mb-4">{t('prizes.finalStandings')}</h3>
           
           {eliminatedPlayers.length > 0 ? (
             <div className="space-y-2">
@@ -149,8 +151,9 @@ export function Prizes({ tournament }: PrizesProps) {
                   <div
                     key={player.id}
                     className={`flex items-center justify-between p-3 rounded-lg ${
-                      payout ? 'bg-accent/10 border border-accent/20' : 'bg-themed-tertiary/50'
+                      payout ? 'bg-accent/10' : 'bg-themed-tertiary/50'
                     }`}
+                    style={payout ? { border: '1px solid rgba(var(--accent-rgb), 0.25)' } : undefined}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-lg w-8">
@@ -173,8 +176,8 @@ export function Prizes({ tournament }: PrizesProps) {
           ) : (
             <div className="text-center py-8 text-themed-muted">
               <div className="text-4xl mb-3">🏆</div>
-              <p>No eliminations yet</p>
-              <p className="text-sm mt-1">Final standings will appear here as players are eliminated</p>
+              <p>{t('prizes.noEliminations')}</p>
+              <p className="text-sm mt-1">{t('prizes.standingsWillAppear')}</p>
             </div>
           )}
         </div>
@@ -197,7 +200,7 @@ export function Prizes({ tournament }: PrizesProps) {
             <div className="text-2xl font-bold text-themed-primary mb-1">
               {formatCurrency(payout.amount, tournament.currency_symbol)}
             </div>
-            <div className="text-sm text-themed-muted">{payout.percentage}% of pool</div>
+            <div className="text-sm text-themed-muted">{payout.percentage}% {t('prizes.ofPool')}</div>
           </div>
         ))}
       </div>

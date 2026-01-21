@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Player {
@@ -198,6 +198,61 @@ fn reset_tournament(state: State<AppState>) {
 }
 
 #[tauri::command]
+async fn open_projector_window(app: AppHandle) -> Result<(), String> {
+    // Check if projector window already exists
+    if let Some(window) = app.get_webview_window("projector") {
+        // Focus existing window
+        window.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    // Determine the URL based on dev/prod mode
+    #[cfg(debug_assertions)]
+    let url = WebviewUrl::External("http://localhost:5173/projector.html".parse().unwrap());
+    
+    #[cfg(not(debug_assertions))]
+    let url = WebviewUrl::App("projector.html".into());
+
+    // Create new projector window
+    let _window = WebviewWindowBuilder::new(
+        &app,
+        "projector",
+        url
+    )
+    .title("PokerPulsePro - Projector")
+    .inner_size(1920.0, 1080.0)
+    .min_inner_size(800.0, 600.0)
+    .resizable(true)
+    .decorations(true)
+    .fullscreen(false)
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn close_projector_window(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("projector") {
+        window.close().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn is_projector_open(app: AppHandle) -> bool {
+    app.get_webview_window("projector").is_some()
+}
+
+#[tauri::command]
+async fn set_projector_fullscreen(app: AppHandle, fullscreen: bool) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("projector") {
+        window.set_fullscreen(fullscreen).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 fn save_tournament(app: AppHandle, state: State<AppState>) -> Result<String, String> {
     let t = state.tournament.lock().unwrap();
     let json = serde_json::to_string_pretty(&*t).map_err(|e| e.to_string())?;
@@ -257,6 +312,8 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState {
             tournament: Mutex::new(Tournament::default()),
         })
@@ -277,6 +334,10 @@ fn main() {
             save_tournament,
             load_tournament,
             list_tournaments,
+            open_projector_window,
+            close_projector_window,
+            is_projector_open,
+            set_projector_fullscreen,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

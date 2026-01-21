@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface ModalProps {
   isOpen: boolean
@@ -78,6 +79,8 @@ interface AlertModalProps {
 }
 
 export function AlertModal({ isOpen, onClose, title, message, type = 'info' }: AlertModalProps) {
+  const { t } = useTranslation()
+  
   const icons = {
     success: (
       <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
@@ -110,12 +113,12 @@ export function AlertModal({ isOpen, onClose, title, message, type = 'info' }: A
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title || 'Notice'} size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title={title || t('modal.notice')} size="sm">
       <div className="text-center">
         <div className="flex justify-center">{icons[type]}</div>
         <p className="text-themed-secondary mb-6">{message}</p>
         <button onClick={onClose} className="btn btn-primary w-full">
-          OK
+          {t('modal.ok')}
         </button>
       </div>
     </Modal>
@@ -138,25 +141,27 @@ export function ConfirmModal({
   isOpen, 
   onClose, 
   onConfirm, 
-  title = 'Confirm', 
+  title, 
   message, 
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   variant = 'primary'
 }: ConfirmModalProps) {
+  const { t } = useTranslation()
+  
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title={title || t('modal.confirm')} size="sm">
       <div>
         <p className="text-themed-secondary mb-6">{message}</p>
         <div className="flex gap-3">
           <button onClick={onClose} className="btn btn-secondary flex-1">
-            {cancelText}
+            {cancelText || t('modal.cancel')}
           </button>
           <button 
             onClick={() => { onConfirm(); onClose(); }} 
             className={`btn flex-1 ${variant === 'danger' ? 'btn-danger' : 'btn-primary'}`}
           >
-            {confirmText}
+            {confirmText || t('modal.confirm')}
           </button>
         </div>
       </div>
@@ -180,12 +185,13 @@ export function PromptModal({
   isOpen, 
   onClose, 
   onSubmit, 
-  title = 'Enter Value', 
+  title, 
   message,
   placeholder = '',
   defaultValue = '',
-  submitText = 'Submit'
+  submitText
 }: PromptModalProps) {
+  const { t } = useTranslation()
   const [value, setValue] = useState(defaultValue)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -205,7 +211,7 @@ export function PromptModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title={title || t('modal.enterValue')} size="sm">
       <form onSubmit={handleSubmit}>
         {message && <p className="text-themed-secondary mb-4">{message}</p>}
         <input
@@ -218,10 +224,10 @@ export function PromptModal({
         />
         <div className="flex gap-3">
           <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
-            Cancel
+            {t('modal.cancel')}
           </button>
           <button type="submit" className="btn btn-primary flex-1" disabled={!value.trim()}>
-            {submitText}
+            {submitText || t('modal.submit')}
           </button>
         </div>
       </form>

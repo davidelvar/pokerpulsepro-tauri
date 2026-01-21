@@ -85,3 +85,145 @@ export function playSound(type: 'levelChange' | 'warning' | 'break'): void {
   oscillator.start()
   oscillator.stop(audioContext.currentTime + 0.2)
 }
+
+// GitHub update checker
+export const CURRENT_VERSION = '1.1.0'
+const GITHUB_REPO = 'davidelvar/pokerpulsepro-tauri'
+const UPDATE_CHECK_KEY = 'pokerpulse_update_check'
+const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000 // 1 hour in milliseconds
+
+// Check if running in Tauri
+const isTauri = typeof window !== 'undefined' && '__TAURI__' in window
+
+export interface UpdateInfo {
+  updateAvailable: boolean
+  latestVersion: string
+  downloadUrl: string
+  releaseNotes?: string
+  tauriUpdate?: any // The Tauri update object for downloading/installing
+}
+
+function compareVersions(current: string, latest: string): boolean {
+  const currentParts = current.replace('v', '').split('.').map(Number)
+  const latestParts = latest.replace('v', '').split('.').map(Number)
+  
+  for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
+    const c = currentParts[i] || 0
+    const l = latestParts[i] || 0
+    if (l > c) return true
+    if (l < c) return false
+  }
+  return false
+}
+
+export async function checkForUpdates(): Promise<UpdateInfo | null> {
+  try {
+    // Check cache first (for the UI display)
+    const cached = localStorage.getItem(UPDATE_CHECK_KEY)
+    if (cached) {
+      const { timestamp, data } = JSON.parse(cached)
+      if (Date.now() - timestamp < UPDATE_CHECK_INTERVAL) {
+        return data
+      }
+    }
+
+    // Try Tauri updater first if available
+    if (isTauri) {
+      try {
+        const { check } = await import('@tauri-apps/plugin-updater')
+        const update = await check()
+        
+        if (update) {
+          const updateInfo: UpdateInfo = {
+            updateAvailable: true,
+            latestVersion: update.version,
+            downloadUrl: 'https://www.pokerpulsepro.com',
+            releaseNotes: update.body || undefined,
+            tauriUpdate: update
+          }
+          
+          // Cache the result
+          localStorage.setItem(UPDATE_CHECK_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: { ...updateInfo, tauriUpdate: undefined } // Don't cache the update object
+          }))
+          
+          return updateInfo
+        } else {
+          // No update available
+          const updateInfo: UpdateInfo = {
+            updateAvailable: false,
+            latestVersion: CURRENT_VERSION,
+            downloadUrl: 'https://www.pokerpulsepro.com'
+          }
+          localStorage.setItem(UPDATE_CHECK_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            data: updateInfo
+          }))
+          return updateInfo
+        }
+      } catch (tauriError) {
+        console.warn('Tauri updater not available, falling back to GitHub API:', tauriError)
+      }
+    }
+
+    // Fallback to GitHub API (for web/dev mode)
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+      headers: { 'Accept': 'application/vnd.github.v3+json' }
+    })
+    
+    if (!response.ok) {
+      console.warn('Failed to check for updates:', response.status)
+      return null
+    }
+
+    const release = await response.json()
+    const latestVersion = release.tag_name.replace('v', '')
+    const updateAvailable = compareVersions(CURRENT_VERSION, latestVersion)
+
+    const updateInfo: UpdateInfo = {
+      updateAvailable,
+      latestVersion,
+      downloadUrl: 'https://www.pokerpulsepro.com',
+      releaseNotes: release.body
+    }
+
+    // Cache the result
+    localStorage.setItem(UPDATE_CHECK_KEY, JSON.stringify({
+      timestamp: Date.now(),
+      data: updateInfo
+    }))
+
+    return updateInfo
+  } catch (error) {
+    console.warn('Error checking for updates:', error)
+    return null
+  }
+}
+
+// Download and install update using Tauri updater
+export async function downloadAndInstallUpdate(updateInfo: UpdateInfo): Promise<boolean> {
+  if (!isTauri || !updateInfo.tauriUpdate) {
+    // Not in Tauri or no update object - open website
+    window.open(updateInfo.downloadUrl, '_blank')
+    return false
+  }
+
+  try {
+    const update = updateInfo.tauriUpdate
+    
+    // Download the update
+    await update.downloadAndInstall()
+    
+    // Relaunch the app
+    const { relaunch } = await import('@tauri-apps/plugin-process')
+    await relaunch()
+    
+    return true
+  } catch (error) {
+    console.error('Failed to install update:', error)
+    // Fallback to website
+    window.open(updateInfo.downloadUrl, '_blank')
+    return false
+  }
+}

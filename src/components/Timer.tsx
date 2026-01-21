@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Tournament } from '../types'
 import { formatTime, formatCurrency, getActivePlayers, getAverageStack, calculatePrizePool } from '../utils'
 import { PromptModal, AlertModal } from './Modal'
@@ -14,6 +15,7 @@ interface TimerProps {
 }
 
 export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, onCompleteTournament, onReset }: TimerProps) {
+  const { t } = useTranslation()
   const [showWinnerPrompt, setShowWinnerPrompt] = useState(false)
   const [showSavedAlert, setShowSavedAlert] = useState(false)
   const [hasSaved, setHasSaved] = useState(false)
@@ -39,19 +41,19 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
       {/* Top Stats Bar */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="card p-4 text-center">
-          <div className="text-themed-muted text-sm mb-1">Players</div>
+          <div className="text-themed-muted text-sm mb-1">{t('timer.players')}</div>
           <div className="text-2xl font-bold text-themed-primary">
             {activePlayers} <span className="text-themed-muted font-normal text-lg">/ {totalPlayers}</span>
           </div>
         </div>
         <div className="card p-4 text-center">
-          <div className="text-themed-muted text-sm mb-1">Prize Pool</div>
+          <div className="text-themed-muted text-sm mb-1">{t('timer.prizePool')}</div>
           <div className="text-2xl font-bold text-accent">
             {formatCurrency(prizePool, tournament.currency_symbol)}
           </div>
         </div>
         <div className="card p-4 text-center">
-          <div className="text-themed-muted text-sm mb-1">Average Stack</div>
+          <div className="text-themed-muted text-sm mb-1">{t('timer.averageStack')}</div>
           <div className="text-2xl font-bold text-themed-primary">{avgStack.toLocaleString()}</div>
         </div>
       </div>
@@ -66,23 +68,23 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
               </svg>
             </div>
-            <div className="text-5xl font-bold text-accent mb-4">Tournament Complete!</div>
+            <div className="text-5xl font-bold text-accent mb-4">{t('timer.tournamentComplete')}</div>
             <div className="text-xl text-themed-secondary mb-8">
-              All {tournament.blind_structure.length} levels have finished
+              {t('timer.allLevelsFinished', { count: tournament.blind_structure.length })}
             </div>
             
             {/* Final Stats */}
             <div className="grid grid-cols-3 gap-8 mb-8">
               <div className="text-center">
-                <div className="text-themed-muted text-sm mb-1">Players Remaining</div>
+                <div className="text-themed-muted text-sm mb-1">{t('timer.playersRemaining')}</div>
                 <div className="text-3xl font-bold text-themed-primary">{activePlayers}</div>
               </div>
               <div className="text-center">
-                <div className="text-themed-muted text-sm mb-1">Final Prize Pool</div>
+                <div className="text-themed-muted text-sm mb-1">{t('timer.finalPrizePool')}</div>
                 <div className="text-3xl font-bold text-accent">{formatCurrency(prizePool, tournament.currency_symbol)}</div>
               </div>
               <div className="text-center">
-                <div className="text-themed-muted text-sm mb-1">Final Blinds</div>
+                <div className="text-themed-muted text-sm mb-1">{t('timer.finalBlinds')}</div>
                 <div className="text-3xl font-bold text-themed-primary">
                   {currentBlind?.small_blind.toLocaleString()} / {currentBlind?.big_blind.toLocaleString()}
                 </div>
@@ -95,20 +97,20 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
                 onClick={prevLevel}
                 className="btn btn-secondary"
               >
-                ← Go Back a Level
+                ← {t('timer.goBackLevel')}
               </button>
               <button
                 onClick={() => addTime(300)}
                 className="btn btn-secondary"
               >
-                + Add 5 Minutes
+                + {t('timer.addFiveMin')}
               </button>
               {onCompleteTournament && !hasSaved && (
                 <button
                   onClick={() => setShowWinnerPrompt(true)}
                   className="btn btn-primary"
                 >
-                  🏆 Save to History
+                  🏆 {t('timer.saveToHistory')}
                 </button>
               )}
               {hasSaved && onReset && (
@@ -116,7 +118,7 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
                   onClick={onReset}
                   className="btn btn-primary"
                 >
-                  🔄 Reset Tournament
+                  🔄 {t('timer.resetTournament')}
                 </button>
               )}
             </div>
@@ -134,7 +136,7 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
                   : 'bg-themed-tertiary text-themed-secondary'
               }
             `}>
-              {isBreak ? '☕ Break' : isFinalLevel ? '🏆 Final Level' : `Level ${tournament.current_level + 1} of ${tournament.blind_structure.length}`}
+              {isBreak ? `☕ ${t('timer.break')}` : isFinalLevel ? `🏆 ${t('timer.finalLevel')}` : t('timer.levelOf', { current: tournament.current_level + 1, total: tournament.blind_structure.length })}
             </div>
 
             {/* Timer */}
@@ -152,17 +154,17 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
             {!isBreak && (
               <div className="mt-8 flex items-center gap-12">
                 <div className="text-center">
-                  <div className="text-themed-muted text-lg mb-2 uppercase tracking-wide">Small Blind</div>
+                  <div className="text-themed-muted text-lg mb-2 uppercase tracking-wide">{t('timer.smallBlind')}</div>
                   <div className="text-6xl font-bold text-themed-primary">{currentBlind?.small_blind.toLocaleString()}</div>
                 </div>
                 <div className="text-6xl text-themed-muted font-light">/</div>
                 <div className="text-center">
-                  <div className="text-themed-muted text-lg mb-2 uppercase tracking-wide">Big Blind</div>
+                  <div className="text-themed-muted text-lg mb-2 uppercase tracking-wide">{t('timer.bigBlind')}</div>
                   <div className="text-6xl font-bold text-themed-primary">{currentBlind?.big_blind.toLocaleString()}</div>
                 </div>
                 <div className="text-6xl text-themed-muted font-light">+</div>
                 <div className="text-center">
-                  <div className="text-themed-muted text-lg mb-2 uppercase tracking-wide">Ante</div>
+                  <div className="text-themed-muted text-lg mb-2 uppercase tracking-wide">{t('timer.ante')}</div>
                   <div className={`text-6xl font-bold ${currentBlind?.ante ? 'text-accent' : 'text-themed-muted'}`}>
                     {currentBlind?.ante ? currentBlind.ante.toLocaleString() : '–'}
                   </div>
@@ -173,23 +175,23 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
             {/* Next Level Preview */}
             {nextBlind && !isBreak && (
               <div className="mt-6 card px-6 py-4 inline-block">
-                <div className="text-themed-muted text-xs mb-2 uppercase tracking-wide text-center">Next Level</div>
+                <div className="text-themed-muted text-xs mb-2 uppercase tracking-wide text-center">{t('timer.nextLevel')}</div>
                 {nextBlind.is_break ? (
-                  <div className="text-amber-400 text-xl font-semibold text-center">☕ Break</div>
+                  <div className="text-amber-400 text-xl font-semibold text-center">☕ {t('timer.break')}</div>
                 ) : (
                   <div className="flex items-center justify-center gap-4">
                     <div className="text-center">
-                      <div className="text-themed-muted text-xs mb-1 uppercase tracking-wide">Small Blind</div>
+                      <div className="text-themed-muted text-xs mb-1 uppercase tracking-wide">{t('timer.smallBlind')}</div>
                       <div className="text-xl font-bold text-themed-secondary">{nextBlind.small_blind.toLocaleString()}</div>
                     </div>
                     <div className="text-xl text-themed-muted font-light">/</div>
                     <div className="text-center">
-                      <div className="text-themed-muted text-xs mb-1 uppercase tracking-wide">Big Blind</div>
+                      <div className="text-themed-muted text-xs mb-1 uppercase tracking-wide">{t('timer.bigBlind')}</div>
                       <div className="text-xl font-bold text-themed-secondary">{nextBlind.big_blind.toLocaleString()}</div>
                     </div>
                     <div className="text-xl text-themed-muted font-light">+</div>
                     <div className="text-center">
-                      <div className="text-themed-muted text-xs mb-1 uppercase tracking-wide">Ante</div>
+                      <div className="text-themed-muted text-xs mb-1 uppercase tracking-wide">{t('timer.ante')}</div>
                       <div className={`text-xl font-bold ${nextBlind.ante ? 'text-accent' : 'text-themed-muted'}`}>
                         {nextBlind.ante ? nextBlind.ante.toLocaleString() : '–'}
                       </div>
@@ -204,7 +206,7 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
               <button
                 onClick={prevLevel}
                 className="btn btn-secondary w-12 h-12 rounded-full p-0"
-                title="Previous level"
+                title={t('timer.previousLevel')}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -235,7 +237,7 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
               <button
                 onClick={nextLevel}
                 className="btn btn-secondary w-12 h-12 rounded-full p-0"
-                title="Next level"
+                title={t('timer.nextLevel')}
                 disabled={isFinalLevel}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -265,22 +267,22 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
             setShowSavedAlert(true)
           }
         }}
-        title="🏆 Tournament Winner"
+        title={t('timer.tournamentWinner')}
         message={likelyWinner 
-          ? `${likelyWinner} is the last player standing! Confirm or edit the winner's name.`
-          : "Enter the winner's name to save this tournament to history."
+          ? t('timer.winnerConfirm', { name: likelyWinner })
+          : t('timer.enterWinnerName')
         }
-        placeholder="Winner name"
+        placeholder={t('timer.winnerPlaceholder')}
         defaultValue={likelyWinner}
-        submitText="Save Tournament"
+        submitText={t('timer.saveTournament')}
       />
 
       {/* Saved Confirmation */}
       <AlertModal
         isOpen={showSavedAlert}
         onClose={() => setShowSavedAlert(false)}
-        title="Tournament Saved"
-        message="The tournament has been saved to history. You can view it in Settings → Tournament History."
+        title={t('timer.tournamentSaved')}
+        message={t('timer.tournamentSavedMessage')}
         type="success"
       />
     </div>

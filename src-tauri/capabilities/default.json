@@ -2,9 +2,15 @@
   "$schema": "https://schema.tauri.app/config/2",
   "identifier": "default",
   "description": "Default capabilities for PokerPulsePro",
-  "windows": ["main"],
+  "windows": ["main", "projector"],
   "permissions": [
     "core:default",
+    "core:window:allow-close",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-is-fullscreen",
+    "core:webview:allow-create-webview-window",
+    "core:event:default",
     "shell:allow-open",
     "dialog:default",
     "fs:default",
@@ -20,6 +26,9 @@
     "fs:allow-appdata-write-recursive",
     "fs:allow-document-read-recursive",
     "fs:allow-document-write-recursive",
-    "notification:default"
+    "notification:default",
+    "updater:default",
+    "process:allow-restart",
+    "process:allow-exit"
   ]
 }

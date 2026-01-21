@@ -1,18 +1,51 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Tournament, BlindLevel } from '../types'
 import { generateId } from '../utils'
+import { open, save } from '@tauri-apps/plugin-dialog'
+import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs'
 
 interface BlindsProps {
   tournament: Tournament
   setTournament: (t: Tournament) => void
 }
 
+interface SavedTemplate {
+  id: string
+  name: string
+  levels: Omit<BlindLevel, 'id'>[]
+  createdAt: string
+}
+
+// Check if running in Tauri
+const isTauri = typeof window !== 'undefined' && '__TAURI__' in window
+const STORAGE_KEY_TEMPLATES = 'pokerpulse_blind_templates'
+
 export function Blinds({ tournament, setTournament }: BlindsProps) {
+  const { t } = useTranslation()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null)
+  const [justMovedId, setJustMovedId] = useState<string | null>(null)
+  const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>([])
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [newTemplateName, setNewTemplateName] = useState('')
+  const [showCustomTemplates, setShowCustomTemplates] = useState(false)
+  const [activeTemplate, setActiveTemplate] = useState<string | null>(null)
   const tableRef = useRef<HTMLTableSectionElement>(null)
   const isDragging = useRef(false)
+
+  // Load saved templates from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_TEMPLATES)
+      if (saved) {
+        setSavedTemplates(JSON.parse(saved))
+      }
+    } catch (e) {
+      console.error('Failed to load saved templates:', e)
+    }
+  }, [])
 
   // Mouse-based drag and drop (more reliable than HTML5 drag in WebView)
   const handleMouseDown = useCallback((e: React.MouseEvent, index: number) => {
@@ -58,6 +91,10 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
       const adjustedIndex = draggedIndex < dropTargetIndex ? dropTargetIndex - 1 : dropTargetIndex
       newStructure.splice(adjustedIndex, 0, draggedItem)
       setTournament({ ...tournament, blind_structure: newStructure })
+      
+      // Highlight the moved item briefly
+      setJustMovedId(draggedItem.id)
+      setTimeout(() => setJustMovedId(null), 1000)
     }
 
     isDragging.current = false
@@ -128,6 +165,139 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
     setTournament({ ...tournament, blind_structure: newStructure })
   }
 
+  // Save current blind structure as a custom template
+  const saveAsTemplate = () => {
+    if (!newTemplateName.trim()) return
+    
+    const template: SavedTemplate = {
+      id: generateId(),
+      name: newTemplateName.trim(),
+      levels: tournament.blind_structure.map(({ id, ...rest }) => rest),
+      createdAt: new Date().toISOString()
+    }
+    
+    const updated = [...savedTemplates, template]
+    setSavedTemplates(updated)
+    localStorage.setItem(STORAGE_KEY_TEMPLATES, JSON.stringify(updated))
+    setNewTemplateName('')
+    setShowSaveModal(false)
+  }
+
+  // Load a saved custom template
+  const loadCustomTemplate = (template: SavedTemplate) => {
+    const levels = template.levels.map(level => ({
+      ...level,
+      id: generateId()
+    }))
+    
+    setTournament({
+      ...tournament,
+      blind_structure: levels,
+      current_level: 0,
+      time_remaining_seconds: levels[0].duration_minutes * 60
+    })
+    setActiveTemplate(template.name)
+    setShowCustomTemplates(false)
+  }
+
+  // Delete a saved template
+  const deleteTemplate = (id: string) => {
+    const updated = savedTemplates.filter(t => t.id !== id)
+    setSavedTemplates(updated)
+    localStorage.setItem(STORAGE_KEY_TEMPLATES, JSON.stringify(updated))
+  }
+
+  // Export a template to JSON file
+  const exportTemplate = async (template?: SavedTemplate) => {
+    const dataToExport = template 
+      ? { name: template.name, levels: template.levels }
+      : { 
+          name: tournament.name + ' Blinds',
+          levels: tournament.blind_structure.map(({ id, ...rest }) => rest)
+        }
+    
+    const jsonString = JSON.stringify(dataToExport, null, 2)
+    const fileName = `${dataToExport.name.replace(/[^a-z0-9]/gi, '_')}_blinds.json`
+    
+    if (isTauri) {
+      try {
+        const filePath = await save({
+          filters: [{ name: 'JSON', extensions: ['json'] }],
+          defaultPath: fileName
+        })
+        if (filePath) {
+          await writeTextFile(filePath, jsonString)
+        }
+      } catch (err) {
+        console.error('Failed to export:', err)
+      }
+    } else {
+      const blob = new Blob([jsonString], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+  }
+
+  // Import a template from JSON file
+  const importTemplate = async () => {
+    if (isTauri) {
+      try {
+        const filePath = await open({
+          filters: [{ name: 'JSON', extensions: ['json'] }],
+          multiple: false
+        })
+        if (filePath && typeof filePath === 'string') {
+          const content = await readTextFile(filePath)
+          const imported = JSON.parse(content)
+          applyImportedTemplate(imported)
+        }
+      } catch (err) {
+        console.error('Failed to import:', err)
+      }
+    } else {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.json'
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0]
+        if (file) {
+          const text = await file.text()
+          try {
+            const imported = JSON.parse(text)
+            applyImportedTemplate(imported)
+          } catch (err) {
+            console.error('Failed to parse file:', err)
+          }
+        }
+      }
+      input.click()
+    }
+  }
+
+  const applyImportedTemplate = (imported: { name?: string, levels: Omit<BlindLevel, 'id'>[] }) => {
+    if (!imported.levels || !Array.isArray(imported.levels)) {
+      console.error('Invalid template format')
+      return
+    }
+    
+    const levels = imported.levels.map(level => ({
+      ...level,
+      id: generateId()
+    }))
+    
+    setTournament({
+      ...tournament,
+      blind_structure: levels,
+      current_level: 0,
+      time_remaining_seconds: levels[0]?.duration_minutes * 60 || 900
+    })
+    setActiveTemplate(imported.name || t('blinds.importedTemplate'))
+  }
+
   const applyTemplate = (template: 'turbo' | 'regular' | 'deep') => {
     const templates: Record<string, BlindLevel[]> = {
       turbo: [
@@ -180,6 +350,13 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
       current_level: 0,
       time_remaining_seconds: templates[template][0].duration_minutes * 60,
     })
+    
+    const templateNames: Record<string, string> = {
+      turbo: 'Turbo',
+      regular: 'Regular',
+      deep: 'Deep Stack'
+    }
+    setActiveTemplate(templateNames[template])
   }
 
   let levelNumber = 0
@@ -187,32 +364,215 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Templates */}
-      <div className="card p-4 mb-6">
-        <div className="text-sm text-themed-muted mb-3">Quick Templates</div>
-        <div className="flex gap-3">
-          <button onClick={() => applyTemplate('turbo')} className="btn btn-secondary flex-1">
-            ⚡ Turbo (10m levels)
+      <div className="card p-5 mb-6">
+        {/* Quick Templates Header with Active Template */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🎲</span>
+            <h3 className="text-sm font-medium text-themed-primary">{t('blinds.quickTemplates')}</h3>
+          </div>
+          {activeTemplate && (
+            <div 
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/10"
+              style={{ border: '1px solid rgba(var(--accent-rgb), 0.3)' }}
+            >
+              <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-sm font-medium text-accent">{activeTemplate}</span>
+              <button 
+                onClick={() => setActiveTemplate(null)}
+                className="ml-1 text-accent/60 hover:text-accent transition-colors"
+                title={t('blinds.clearTemplate')}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <button 
+            onClick={() => applyTemplate('turbo')} 
+            className="group p-3 rounded-xl bg-themed-tertiary/50 hover:bg-themed-tertiary border border-transparent hover:border-accent/30 transition-all text-center"
+          >
+            <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">⚡</div>
+            <div className="text-sm font-medium text-themed-primary">Turbo</div>
+            <div className="text-xs text-themed-muted">10m {t('blinds.levels')}</div>
           </button>
-          <button onClick={() => applyTemplate('regular')} className="btn btn-secondary flex-1">
-            🎯 Regular (15m levels)
+          <button 
+            onClick={() => applyTemplate('regular')} 
+            className="group p-3 rounded-xl bg-themed-tertiary/50 hover:bg-themed-tertiary border border-transparent hover:border-accent/30 transition-all text-center"
+          >
+            <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">🎯</div>
+            <div className="text-sm font-medium text-themed-primary">Regular</div>
+            <div className="text-xs text-themed-muted">15m {t('blinds.levels')}</div>
           </button>
-          <button onClick={() => applyTemplate('deep')} className="btn btn-secondary flex-1">
-            🏔️ Deep Stack (20m levels)
+          <button 
+            onClick={() => applyTemplate('deep')} 
+            className="group p-3 rounded-xl bg-themed-tertiary/50 hover:bg-themed-tertiary border border-transparent hover:border-accent/30 transition-all text-center"
+          >
+            <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">🏔️</div>
+            <div className="text-sm font-medium text-themed-primary">Deep Stack</div>
+            <div className="text-xs text-themed-muted">20m {t('blinds.levels')}</div>
           </button>
         </div>
+
+        {/* Custom Templates */}
+        <div className="border-t border-zinc-700/20 pt-4">
+          <div className="grid grid-cols-4 gap-2">
+            <button 
+              onClick={importTemplate} 
+              className="btn btn-secondary flex items-center justify-center gap-2 text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              {t('blinds.import')}
+            </button>
+            <button 
+              onClick={() => exportTemplate()} 
+              className="btn btn-secondary flex items-center justify-center gap-2 text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              {t('blinds.export')}
+            </button>
+            <button 
+              onClick={() => setShowSaveModal(true)} 
+              className="btn btn-primary flex items-center justify-center gap-2 text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              {t('blinds.save')}
+            </button>
+            <button 
+              onClick={() => setShowCustomTemplates(!showCustomTemplates)}
+              className={`btn flex items-center justify-center gap-2 text-sm ${
+                showCustomTemplates 
+                  ? 'btn-secondary bg-accent/10 border-accent/30 text-accent' 
+                  : 'btn-secondary'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+              </svg>
+              {t('blinds.myTemplates')}
+              {savedTemplates.length > 0 && (
+                <span className="px-1.5 py-0.5 text-xs rounded-full bg-accent/20 text-accent">
+                  {savedTemplates.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {showCustomTemplates && (
+            <div className="mt-3 space-y-1.5">
+              {savedTemplates.length === 0 ? (
+                <div className="text-center py-6 text-themed-muted">
+                  <div className="text-3xl mb-2 opacity-50">📋</div>
+                  <p className="text-sm">{t('blinds.noCustomTemplates')}</p>
+                </div>
+              ) : (
+                savedTemplates.map((template) => (
+                  <div 
+                    key={template.id}
+                    className="group flex items-center justify-between p-3 rounded-lg bg-themed-tertiary/30 hover:bg-themed-tertiary/60 transition-colors cursor-pointer"
+                    onClick={() => loadCustomTemplate(template)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-themed-muted group-hover:text-accent transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <div>
+                        <div className="text-sm font-medium text-themed-primary">{template.name}</div>
+                        <div className="text-xs text-themed-muted">
+                          {template.levels.length} {t('blinds.levels')} • {template.levels.filter(l => !l.is_break).length} {t('blinds.blindLevels')}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); exportTemplate(template); }}
+                        className="p-1.5 rounded text-themed-muted hover:text-accent hover:bg-themed-tertiary transition-colors"
+                        title={t('blinds.export')}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteTemplate(template.id); }}
+                        className="p-1.5 rounded text-themed-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        title={t('blinds.delete')}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Save Template Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowSaveModal(false)}>
+          <div className="card p-6 w-96 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-accent/10">
+                <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-themed-primary">{t('blinds.saveAsTemplate')}</h3>
+            </div>
+            <input
+              type="text"
+              value={newTemplateName}
+              onChange={(e) => setNewTemplateName(e.target.value)}
+              placeholder={t('blinds.templateNamePlaceholder')}
+              className="input w-full mb-4"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && saveAsTemplate()}
+            />
+            <p className="text-xs text-themed-muted mb-4">
+              {tournament.blind_structure.length} {t('blinds.levels')} will be saved
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowSaveModal(false)} className="btn btn-secondary">
+                {t('blinds.cancel')}
+              </button>
+              <button 
+                onClick={saveAsTemplate} 
+                className="btn btn-primary"
+                disabled={!newTemplateName.trim()}
+              >
+                {t('blinds.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Blind Structure Table */}
       <div className="card overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-themed text-left text-sm text-themed-muted">
-              <th className="p-4 w-20">Level</th>
-              <th className="p-4">Small Blind</th>
-              <th className="p-4">Big Blind</th>
-              <th className="p-4">Ante</th>
-              <th className="p-4 w-32">Duration</th>
-              <th className="p-4 w-32">Actions</th>
+              <th className="p-4 w-20">{t('blinds.level')}</th>
+              <th className="p-4">{t('blinds.smallBlind')}</th>
+              <th className="p-4">{t('blinds.bigBlind')}</th>
+              <th className="p-4">{t('blinds.ante')}</th>
+              <th className="p-4 w-32">{t('blinds.duration')}</th>
+              <th className="p-4 w-32">{t('blinds.actions')}</th>
             </tr>
           </thead>
           <tbody ref={tableRef}>
@@ -222,19 +582,34 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
               const isBeingDragged = draggedIndex === index
               const showDropIndicatorAbove = dropTargetIndex === index
               const showDropIndicatorBelow = dropTargetIndex === tournament.blind_structure.length && index === tournament.blind_structure.length - 1
+              const wasJustMoved = justMovedId === level.id
 
               return (
                 <tr
                   key={level.id}
                   onMouseDown={(e) => handleMouseDown(e, index)}
                   className={`
-                    border-b border-themed/50 transition-all select-none
+                    border-b border-zinc-700/30 dark:border-zinc-700/30 transition-all select-none
                     ${isCurrent ? 'bg-accent/10' : 'hover:bg-themed-tertiary/30'}
                     ${level.is_break ? 'bg-amber-500/5' : ''}
                     ${isBeingDragged ? 'opacity-50 bg-themed-tertiary/50' : ''}
-                    ${showDropIndicatorAbove ? 'border-t-2 border-t-accent' : ''}
-                    ${showDropIndicatorBelow ? 'border-b-2 border-b-accent' : ''}
+                    ${wasJustMoved ? 'animate-highlight-fade' : ''}
                   `}
+                  style={{
+                    ...(showDropIndicatorAbove ? {
+                      borderTopWidth: '3px',
+                      borderTopColor: `rgb(var(--accent-rgb))`,
+                      boxShadow: `0 -4px 12px rgba(var(--accent-rgb), 0.6)`
+                    } : {}),
+                    ...(showDropIndicatorBelow ? {
+                      borderBottomWidth: '3px',
+                      borderBottomColor: `rgb(var(--accent-rgb))`,
+                      boxShadow: `0 4px 12px rgba(var(--accent-rgb), 0.6)`
+                    } : {}),
+                    ...(wasJustMoved ? {
+                      backgroundColor: `rgba(var(--accent-rgb), 0.15)`
+                    } : {})
+                  }}
                 >
                   <td className="p-4">
                     <div className="flex items-center gap-2">
@@ -250,7 +625,7 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
                   </td>
                   <td className="p-4">
                     {level.is_break ? (
-                      <span className="text-amber-400 font-medium">Break</span>
+                      <span className="text-amber-400 font-medium">{t('blinds.break')}</span>
                     ) : editingId === level.id ? (
                       <input
                         type="number"
@@ -324,7 +699,7 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
                         onClick={() => setEditingId(editingId === level.id ? null : level.id)}
                         className={`btn btn-ghost p-1 w-7 h-7 ${editingId === level.id ? 'text-accent' : ''}`}
                       >
-                        ✎
+                        {editingId === level.id ? '✓' : '✎'}
                       </button>
                       <button
                         onClick={() => removeLevel(level.id)}
@@ -344,10 +719,10 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
       {/* Add Level Buttons */}
       <div className="flex gap-3 mt-4">
         <button onClick={() => addLevel(false)} className="btn btn-secondary flex-1">
-          + Add Level
+          + {t('blinds.addLevel')}
         </button>
         <button onClick={() => addLevel(true)} className="btn btn-secondary">
-          + Add Break
+          + {t('blinds.addBreak')}
         </button>
       </div>
     </div>

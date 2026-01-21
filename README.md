@@ -10,6 +10,8 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
 ### Core Features
 - **Tournament Timer** - Large, readable countdown with automatic level progression
 - **Blind Structure** - Customizable blinds with templates (Turbo, Regular, Deep Stack)
+  - **Custom Templates** - Save, load, import/export your own blind structures
+  - Active template indicator shows which structure is in use
 - **Player Management** - Track buy-ins, rebuys, add-ons, and eliminations
 - **Prize Calculator** - Automatic payout calculations with customizable splits
 - **Chip Breakdown** - Visual chip distribution suggestions
@@ -64,6 +66,18 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
   - Matches app theme (light/dark mode + accent colors)
   - Backdrop blur, keyboard support, smooth animations
   - Persistent storage between sessions
+- **🌍 Multilingual Support** - Full internationalization (i18n)
+  - 6 languages: English, Spanish, German, French, Portuguese, Icelandic
+  - Language selector in Settings
+  - All UI components translated
+- **🔄 Auto-Update** - Built-in update notifications
+  - Checks for new versions automatically
+  - One-click download and install
+  - Signed releases for security
+- **📺 Projector Mode** - Second screen support for TV/projector
+  - Dedicated display window with giant timer
+  - Syncs automatically with main window
+  - Perfect for home games and tournaments
 
 ## 🚀 Quick Start
 
@@ -299,24 +313,48 @@ Contributions welcome! Please open an issue or PR.
 
 ## 📋 Changelog
 
-### v1.1.0 (Latest)
+### v1.1.0
+- **🌍 Multilingual Support** - Full internationalization (i18n) with 6 languages
+  - English, Spanish, German, French, Portuguese, Icelandic
+  - Language selector in Settings
+  - All UI components translated
+- **🔄 Auto-Update** - Built-in update notifications and installer
+  - Automatic version checking via GitHub Releases
+  - One-click download and install updates
+  - Signed builds for security
+- **🔗 Website Link** - Quick access to pokerpulsepro.com from About dialog
+- **📁 Custom Blind Templates** - Save, manage, and share blind structures
+  - Save current structure as a reusable template
+  - Import/Export templates as JSON files
+  - "My Templates" library for quick access
+  - Active template indicator with one-click clear
+  - Improved drag & drop visual feedback with accent color
+- **📺 Projector Mode** - Second screen support for TV/projector display
+  - Open dedicated display window for large screens
+  - Giant timer readable from 50+ feet
+  - Syncs automatically with main control window
+  - Fullscreen support on secondary monitors
+  - Shows blinds, players, prize pool, and next level
+  - Running/paused indicator visible to all players
+
+### v1.0.0
+- Initial release with timer, blinds, players, and prizes
+- **🔊 Sound Alerts** - Configurable audio alerts between blind levels
+- **💾 Auto-Save** - Tournament progress automatically saved
+- **➕ Add-on Support** - Full add-on tracking alongside rebuys
+- **🖥️ Fullscreen Mode** - Native fullscreen support via Tauri window API
+- **📊 Enhanced Timer Display** - Larger fonts with key stats always visible
 - **🎨 Theme System** - Light/Dark mode with 6 accent colors
 - **📚 Help Page** - Poker hand rankings reference
 - **⌨️ Keyboard Shortcuts** - Space, arrows, +/-, F, Escape
 - **🔔 Warning Sounds** - Beeps at 60s and 30s before level change
 - **⏸️ Auto-pause on Breaks** - Timer pauses automatically during breaks
 - **🔀 Drag & Drop Blinds** - Reorder levels by dragging
-- Improved light mode styling across all components
-
-### v1.0.0
-- Initial release with timer, blinds, players, and prizes
-- Sound alerts between blind levels
-- Auto-save and tournament persistence
-- Add-on support with chip tracking
-- Fullscreen mode
-- About dialog
-- Enhanced timer display with stats bar
-- Windows ARM64 support
+- **📤 Export/Import** - Save and load tournament configurations
+- **📜 Tournament History** - Log of completed tournaments
+- **📤 Export/Import** - Save and load tournament configurations
+- **📜 Tournament History** - Log of completed tournaments
+- **🪟 Custom Modal Dialogs** - Beautiful themed dialogs
 
 ---
 
