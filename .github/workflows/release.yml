@@ -55,7 +55,7 @@ jobs:
           tagName: v__VERSION__
           releaseName: 'PokerPulsePro v__VERSION__'
           releaseBody: 'See the assets below to download for your platform.'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
           includeUpdaterJson: true
