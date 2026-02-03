@@ -11,9 +11,13 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
 - **Tournament Timer** - Large, readable countdown with automatic level progression
 - **Blind Structure** - Customizable blinds with templates (Turbo, Regular, Deep Stack)
   - **Custom Templates** - Save, load, import/export your own blind structures
+  - **Generate by Duration** - Set target playtime (1-8 hours) and auto-generate structure
   - Active template indicator shows which structure is in use
 - **Player Management** - Track buy-ins, rebuys, add-ons, and eliminations
+  - **Multi-Table Support** - Random seating, table balancing, and seat assignments
 - **Prize Calculator** - Automatic payout calculations with customizable splits
+  - **Custom Templates** - Save, load, import/export your own prize structures
+  - Active template indicator shows which structure is in use
 - **Chip Breakdown** - Visual chip distribution suggestions
 - **Dark Mode** - Beautiful dark theme designed for visibility
 - **Offline First** - Works without internet, data stored locally
@@ -45,7 +49,7 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
   - Space: Play/Pause timer
   - Arrow keys: Navigate levels
   - +/-: Add/remove time
-  - F: Toggle fullscreen
+  - F11: Toggle fullscreen
   - Escape: Exit fullscreen
 - **🎨 Color Themes** - Customizable appearance
   - Light and Dark mode toggle
@@ -78,6 +82,10 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
   - Dedicated display window with giant timer
   - Syncs automatically with main window
   - Perfect for home games and tournaments
+- **🎓 Interactive Onboarding** - Guided tutorial for new users
+  - Step-by-step walkthrough of all features
+  - Spotlight highlighting on UI elements
+  - Accessible anytime from Settings or Help
 
 ## 🚀 Quick Start
 
@@ -182,7 +190,7 @@ pokerpulsepro-tauri/
 | Add 1 minute | `+` or +1m button |
 | Subtract 1 minute | `-` or -1m button |
 | Add 5 minutes | +5m button |
-| Fullscreen | `F` or top-right button |
+| Fullscreen | `F11` or top-right button |
 | Exit Fullscreen | `Escape` |
 
 ### Managing Players
@@ -208,9 +216,10 @@ pokerpulsepro-tauri/
 
 1. Go to the **Blinds** tab
 2. Choose a template (Turbo/Regular/Deep Stack) or customize
-3. Click ✎ to edit individual levels
-4. Use ↑↓ buttons or **drag the ⋮⋮ handle** to reorder levels
-5. Add breaks between levels as needed
+3. **Generate by Duration**: Click "⏱️ Generate by Duration", set hours (1-8), pick a style, and click Generate
+4. Click ✎ to edit individual levels
+5. Use ↑↓ buttons or **drag the ⋮⋮ handle** to reorder levels
+6. Add breaks between levels as needed
 
 ### Prize Payouts
 
@@ -313,6 +322,40 @@ Contributions welcome! Please open an issue or PR.
 
 ## 📋 Changelog
 
+### v1.2.0
+- **🧪 Comprehensive Test Suite** - 624 tests with 49% coverage
+  - Vitest test framework with React Testing Library
+  - 19 test files covering all major components
+  - Tests for: App, Timer, Players, Blinds, Prizes, Settings, Header, Help, Modal, Navigation, ProjectorView
+  - Utility tests for: api, utils, types, tournament, persistence, i18n, multiTable
+  - 100% coverage on Help, Modal, Navigation components
+  - Run tests with `npm test` or `npm run test:coverage`
+- **🎓 Interactive Onboarding** - Guided tutorial for new users
+  - Step-by-step walkthrough of all app features
+  - Spotlight highlighting shows exactly where each feature is
+  - 9 steps covering Timer, Players, Blinds, Prizes, Settings, Projector, and Fullscreen
+  - Skip option to exit early, or restart anytime from Settings/Help
+  - Automatically shows on first launch for new users
+- **⏱️ Generate by Duration** - Auto-generate blind structures based on target playtime
+  - Set tournament duration from 1-8 hours with a slider
+  - Choose level style: Turbo (10m), Regular (15m), or Deep (20m)
+  - Preview shows levels and breaks before generating
+  - Automatic blind progression with antes introduced mid-tournament
+  - Breaks inserted at appropriate intervals based on style
+- **🎰 Multi-Table Support** - Table assignment and balancing for larger tournaments
+  - Configure number of tables (1-20) and seats per table (2-10)
+  - Random seat assignment using fair snake draft algorithm
+  - List view and Table view modes for player management
+  - Balance warnings when tables become uneven after eliminations
+  - One-click balance suggestions to move players between tables
+  - Table/seat badges displayed on player cards (T1-S3 format)
+- **💰 Prize Structure Templates** - Save and reuse custom payout structures
+  - Save current prize distribution as a reusable template
+  - Import/Export templates as JSON files for sharing
+  - "My Templates" library for quick loading
+  - Active template indicator with one-click clear
+  - Supports 2-8 paid places with custom percentages
+
 ### v1.1.0
 - **🌍 Multilingual Support** - Full internationalization (i18n) with 6 languages
   - English, Spanish, German, French, Portuguese, Icelandic
@@ -346,7 +389,7 @@ Contributions welcome! Please open an issue or PR.
 - **📊 Enhanced Timer Display** - Larger fonts with key stats always visible
 - **🎨 Theme System** - Light/Dark mode with 6 accent colors
 - **📚 Help Page** - Poker hand rankings reference
-- **⌨️ Keyboard Shortcuts** - Space, arrows, +/-, F, Escape
+- **⌨️ Keyboard Shortcuts** - Space, arrows, +/-, F11, Escape
 - **🔔 Warning Sounds** - Beeps at 60s and 30s before level change
 - **⏸️ Auto-pause on Breaks** - Timer pauses automatically during breaks
 - **🔀 Drag & Drop Blinds** - Reorder levels by dragging

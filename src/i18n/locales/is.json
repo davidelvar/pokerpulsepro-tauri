@@ -1,40 +1,40 @@
 {
   "header": {
-    "tournamentName": "Nafn mótsamkeppni",
+    "tournamentName": "Nafn á móti",
     "players": "Spilarar",
-    "prizePool": "Verðlaunasjóður",
-    "openProjector": "Opna skjávarp",
-    "closeProjector": "Loka skjávarpi",
+    "prizePool": "Verðlaunapottur",
+    "openProjector": "Opna skjávarpa",
+    "closeProjector": "Loka skjávarpa",
     "shortcuts": {
-      "title": "Lyklaborðsflýtileiðir",
-      "playPause": "Spila / Gera hlé",
+      "title": "Flýtileiðir",
+      "playPause": "Spila / Taka hlé",
       "previousLevel": "Fyrra stig",
       "nextLevel": "Næsta stig",
       "addMinute": "Bæta við 1 mínútu",
       "removeMinute": "Fjarlægja 1 mínútu",
       "fullscreen": "Allur skjárinn",
-      "exitFullscreen": "Hætta í öllum skjá"
+      "exitFullscreen": "Hætta í allskjá"
     },
     "about": {
       "title": "Um",
       "version": "Útgáfa {{version}}",
-      "updateAvailable": "Uppfærsla Tiltæk!",
-      "downloadUpdate": "Sækja Uppfærslu",
+      "updateAvailable": "Uppfærsla tiltæk!",
+      "downloadUpdate": "Sækja uppfærslu",
       "updating": "Uppfærir...",
-      "description": "Fagleg póker mótastjórnunarforrit.",
+      "description": "Póker forrit til þess að halda utan um þitt mót.",
       "features": {
-        "blinds": "Blindstjórnun",
+        "blinds": "Blindar",
         "players": "Rakning spilara og útsláttir",
-        "prizes": "Útreikningar verðlaunasjóðs",
+        "prizes": "Útreikningar verðlaunapotts",
         "settings": "Sérhannaðar mótsstillingar"
       },
       "builtWith": "Byggt með Tauri + React",
-      "website": "Heimsækja Vefsíðu"
+      "website": "Heimsækja vefsíðu"
     }
   },
   "app": {
     "name": "PokerPulse Pro",
-    "tagline": "Atvinnumaður Póker Mótskeiðsklukka"
+    "tagline": "Fyrir þitt pókermót"
   },
   "nav": {
     "timer": "Klukka",
@@ -51,8 +51,8 @@
     "break": "Hlé",
     "blinds": "Blindar",
     "ante": "Ante",
-    "smallBlind": "Lítill Blind",
-    "bigBlind": "Stór Blind",
+    "smallBlind": "Lítill Blindur",
+    "bigBlind": "Stór Blindur",
     "nextLevel": "Næsta Stig",
     "pause": "Gera hlé",
     "play": "Byrja",
@@ -61,26 +61,26 @@
     "addMinute": "Bæta við Mínútu",
     "removeMinute": "Fjarlægja Mínútu",
     "fullscreen": "Fullur Skjár",
-    "exitFullscreen": "Hætta Fullum Skjá",
+    "exitFullscreen": "Hætta í fullum skjá",
     "players": "Spilarar",
     "prizePool": "Verðlaunapottur",
-    "averageStack": "Meðaltal Stack",
-    "tournamentComplete": "Mótskeið Lokið!",
+    "averageStack": "Meðaltal spilara",
+    "tournamentComplete": "Móti lokið!",
     "allLevelsFinished": "Öll {{count}} stig eru búin",
-    "playersRemaining": "Spilarar Eftir",
+    "playersRemaining": "Spilarar eftir",
     "finalPrizePool": "Lokaverðlaunapottur",
     "finalBlinds": "Loka Blindar",
-    "goBackLevel": "Fara til baka um Stig",
+    "goBackLevel": "Fara til baka um stig",
     "addFiveMin": "Bæta við 5 Mínútum",
-    "saveToHistory": "Vista í Sögu",
-    "resetTournament": "Endurstilla Mótskeið",
-    "tournamentWinner": "🏆 Sigurvegari Mótskeiðs",
-    "winnerConfirm": "{{name}} er síðasti spilari sem stendur! Staðfestu eða breyttu nafni sigurvegarans.",
-    "enterWinnerName": "Sláðu inn nafn sigurvegarans til að vista þetta mótskeið í sögu.",
+    "saveToHistory": "Vista",
+    "resetTournament": "Endurstilla mót",
+    "tournamentWinner": "🏆 Sigurvegari mótsins",
+    "winnerConfirm": "{{name}} er síðasti spilari sem stendur eftir! Staðfestu eða breyttu nafni sigurvegarans.",
+    "enterWinnerName": "Sláðu inn nafn sigurvegarans til að vista þetta mót.",
     "winnerPlaceholder": "Nafn sigurvegarans",
-    "saveTournament": "Vista Mótskeið",
-    "tournamentSaved": "Mótskeið Vistað",
-    "tournamentSavedMessage": "Mótskeiðið hefur verið vistað í sögu. Þú getur skoðað það í Stillingar → Mótskeið Saga.",
+    "saveTournament": "Vista mót",
+    "tournamentSaved": "Mót Vistað",
+    "tournamentSavedMessage": "Mótið hefur verið vistað. Þú getur skoðað það í Stillingar → Mót.",
     "previousLevel": "Fyrra stig"
   },
   "players": {
@@ -114,7 +114,39 @@
       "all": "Allir",
       "active": "Virkir",
       "eliminated": "Útilokaðir"
-    }
+    },
+    "viewList": "Listi",
+    "viewTables": "Borð",
+    "tableManagement": "Borðastjórnun",
+    "tables": "Borð",
+    "seatsEach": "Sæti hvert",
+    "tableCount": "Fjöldi Borða",
+    "seatsPerTable": "Sæti á Borð",
+    "randomAssign": "Handahófskennd Úthlutun",
+    "clearAssignments": "Hreinsa Allt",
+    "unassigned": "óúthlutaðir",
+    "tablesUnbalanced": "Borð í ójafnvægi",
+    "balanceSuggestion": "Tillaga að Jafnvægi",
+    "moveSuggestion": "Færa {{player}} frá Borði {{from}} til Borðs {{to}}",
+    "applyMove": "Nota",
+    "table": "Borð",
+    "seats": "sæti",
+    "emptyTable": "Engir spilarar við þetta borð",
+    "dropHere": "Slétta spilara hér",
+    "notEnoughSeats": "Ekki nóg sæti! {{players}} spilarar en aðeins {{capacity}} sæti",
+    "addTable": "Setja á {{count}} borð",
+    "couldConsolidate": "{{players}} spilarar myndu passa á {{tables}} borð",
+    "consolidate": "Sameina",
+    "allSeated": "Allir spilarar settir",
+    "manageTables": "Stjórna Borðum",
+    "noTable": "—",
+    "recommendedTables": "Ráðlagt: {{count}} borð",
+    "applyRecommendation": "Nota",
+    "unassignedPlayers": "Óúthlutuð Leikmenn",
+    "assignAll": "Úthluta Öllum",
+    "filtered": "síað",
+    "noMatchingPlayers": "Engir samsvarandi leikmenn",
+    "quickSet": "Fljótt"
   },
   "blinds": {
     "title": "Blind Uppbygging",
@@ -150,7 +182,15 @@
     "cancel": "Hætta við",
     "save": "Vista",
     "clearTemplate": "Hreinsa virkt sniðmát",
-    "importedTemplate": "Innflutt Sniðmát"
+    "importedTemplate": "Innflutt Sniðmát",
+    "generateByDuration": "Búa til eftir Lengd",
+    "generateByDurationDesc": "Stilltu marktíma og fáðu sérsniðna uppbyggingu",
+    "targetDuration": "Marktími Móts",
+    "hours": "klukkustundir",
+    "levelStyle": "Stíll Stigs",
+    "preview": "Forskoðun",
+    "breaks": "hlé",
+    "generate": "Búa til"
   },
   "prizes": {
     "title": "Verðlaunapottur",
@@ -172,7 +212,22 @@
     "finalStandings": "Lokastig",
     "noEliminations": "Engar útilokun ennþá",
     "standingsWillAppear": "Lokastig munu birtast hér þegar spilarar eru útilokaðir",
-    "ofPool": "af potti"
+    "ofPool": "af potti",
+    "myTemplates": "Mínar Sniðmát",
+    "saveTemplate": "Vista Sniðmát",
+    "saveAsTemplate": "Vista sem Sniðmát",
+    "templateName": "Nafn sniðmáts...",
+    "noCustomTemplates": "Engin sérsniðin sniðmát vistuð",
+    "saveCurrentToCreate": "Vistaðu núverandi uppbyggingu til að búa til eitt",
+    "places": "sæti",
+    "import": "Flytja inn",
+    "export": "Flytja út",
+    "delete": "Eyða",
+    "save": "Vista",
+    "clearTemplate": "Hreinsa virkt sniðmát",
+    "importedTemplate": "Innflutt Sniðmát",
+    "exportTemplate": "Flytja út í skrá",
+    "importTemplate": "Flytja inn úr skrá"
   },
   "settings": {
     "title": "Stillingar",
@@ -238,6 +293,10 @@
     "noHistory": "Engin mótskeið saga ennþá. Lokið mótskeið birtast hér.",
     "clearHistory": "Hreinsa Alla Sögu",
     "clearHistoryConfirm": "Ertu viss um að þú viljir hreinsa alla mótskeið sögu? Þessa aðgerð er ekki hægt að afturkalla.",
+    "helpSupport": "Hjálp & Stuðningur",
+    "showTutorial": "Leiðarvisi Forritsins",
+    "showTutorialDesc": "Lærðu að nota PokerPulse Pro með gagnvirkri leiðsögn",
+    "startTutorial": "Byrja Leiðarvisi",
     "dangerZone": "Hættusvæði",
     "resetTournament": "Endurstilla Mótskeið",
     "resetTournamentDesc": "Hreinsa alla spilara og endurstilla klukku á Stig 1",
@@ -253,6 +312,7 @@
   "help": {
     "title": "Röðun Pókerhanda",
     "subtitle": "Frá hæstu til lægstu - lærðu þessar utanað til að spila eins og atvinnumaður!",
+    "viewTutorial": "Sýna Leiðarvisi Forritsins",
     "hands": {
       "royalFlush": {
         "name": "Royal Flush",
@@ -263,23 +323,23 @@
         "description": "Fimm spil í röð, öll í sama lit"
       },
       "fourOfAKind": {
-        "name": "Ferkja",
+        "name": "Fjögur eins",
         "description": "Fjögur spil með sama gildi"
       },
       "fullHouse": {
-        "name": "Full House",
-        "description": "Þríeyki auk pars"
+        "name": "Fullt hús",
+        "description": "Þrjú eins auk pars"
       },
       "flush": {
-        "name": "Flush",
+        "name": "Litur",
         "description": "Fimm spil í sama lit, ekki í röð"
       },
       "straight": {
-        "name": "Straight",
+        "name": "Röð",
         "description": "Fimm spil í röð, mismunandi litir"
       },
       "threeOfAKind": {
-        "name": "Þríeyki",
+        "name": "Þrjú eins",
         "description": "Þrjú spil með sama gildi"
       },
       "twoPair": {
@@ -354,5 +414,92 @@
     "success": "Tókst",
     "warning": "Viðvörun",
     "info": "Upplýsingar"
+  },
+  "onboarding": {
+    "skip": "Sleppa Leiðarvisi",
+    "next": "Næsta",
+    "previous": "Til baka",
+    "getStarted": "Byrjum!",
+    "accessLater": "Þú getur alltaf opnað þessa leiðarvisi frá Stillingar eða Hjálp",
+    "steps": {
+      "welcome": {
+        "title": "Velkomin í PokerPulse Pro!",
+        "description": "Fagleg pókermótskeiðastjórnunartæki þitt. Við skulum fara fljótt yfir helstu eiginleikana."
+      },
+      "timer": {
+        "title": "Mótskeiðsklukka",
+        "description": "Hjártámótskeiðsins. Stjórnaðu blinds, fylgstu með tíma og stjórnaðu stigaframvindu.",
+        "features": [
+          "Spila/slökkt með bil-lykilinn",
+          "Ferðast milli stiga með örvum",
+          "Bæta við eða draga frá tíma",
+          "Fullur skjár fyrir sýningu"
+        ]
+      },
+      "players": {
+        "title": "Spilarastjórnun",
+        "description": "Fylgstu með öllum spilurum, buy-ins, rebuys og útsláttum.",
+        "features": [
+          "Bæta við og stjórna spilurum autvelt",
+          "Fylgstu með buy-ins, rebuys og add-ons",
+          "Úthluta spilurum á borð",
+          "Skrá útsátt og sæti"
+        ]
+      },
+      "blinds": {
+        "title": "Blind Uppbygging",
+        "description": "Sérsniððu blind stig þitt að mótskeiðsstíl þinum.",
+        "features": [
+          "Veldu úr forðefildum snimmátum",
+          "Búinn til sérsniðna blind uppbyggingu",
+          "Búinn til eftir leiðartíma",
+          "Bættu við hléum milli stiga"
+        ]
+      },
+      "prizes": {
+        "title": "Verðlaunadreifingin",
+        "description": "Reikna og sýna sjálfkrafa verðlaunapott dreifingu.",
+        "features": [
+          "Sjálfvirkur útreikningur byggist á buy-ins",
+          "Sérsniðanleg útborgunarprósenta",
+          "Sýnir spilaraflokkanir",
+          "Styður margs konar útborgunaruppbyggingu"
+        ]
+      },
+      "settings": {
+        "title": "Stillingar",
+        "description": "Sérsniðið mótskeið upplifun þína með yfirgripsmiklum stillingum.",
+        "features": [
+          "Þema og áherslulitir",
+          "Hljóð og tilkynningarvalkostir",
+          "Sjálfgefin gildi mótskeið",
+          "Tungumálaval"
+        ]
+      },
+      "projector": {
+        "title": "Skýrisýn",
+        "description": "Opnaðu sérstakan glugga sérsmíðaðan fyrir stóra skjái og skýrisjá.",
+        "features": [
+          "Hrein, læsileg sýning",
+          "Sýnir núveras og næstu blinds",
+          "Spilarafjöldi og verðlaunapottur",
+          "Fullkominn fyrir sjónvarp eða skýris"
+        ]
+      },
+      "fullscreen": {
+        "title": "Heilskjástilling",
+        "description": "Stækkaðu forritið fyrir upplifun án truflunar.",
+        "features": [
+          "Fela gluggastýringar",
+          "Nota allan skjáinn",
+          "Ýttu á F11 til að skipta",
+          "Frábært fyrir sérstöðu uppsetningu"
+        ]
+      },
+      "ready": {
+        "title": "Allt tilbúið!",
+        "description": "Þú ert tilbúinn til að setja af stað fyrsta mótið þitt. Gangi þér vel við borðin!"
+      }
+    }
   }
 }

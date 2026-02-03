@@ -6,6 +6,8 @@ export interface Player {
   addons: number
   eliminated: boolean
   placement: number | null
+  tableNumber: number | null
+  seatNumber: number | null
 }
 
 export interface BlindLevel {
@@ -32,6 +34,8 @@ export interface Tournament {
   time_remaining_seconds: number
   is_running: boolean
   currency_symbol: string
+  tableCount: number
+  seatsPerTable: number
 }
 
 export interface SoundSettings {

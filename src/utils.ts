@@ -87,7 +87,7 @@ export function playSound(type: 'levelChange' | 'warning' | 'break'): void {
 }
 
 // GitHub update checker
-export const CURRENT_VERSION = '1.1.0'
+export const CURRENT_VERSION = '1.2.0'
 const GITHUB_REPO = 'davidelvar/pokerpulsepro-tauri'
 const UPDATE_CHECK_KEY = 'pokerpulse_update_check'
 const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000 // 1 hour in milliseconds
@@ -227,3 +227,167 @@ export async function downloadAndInstallUpdate(updateInfo: UpdateInfo): Promise<
     return false
   }
 }
+
+// Multi-table utilities
+
+export interface TableAssignment {
+  tableNumber: number
+  seatNumber: number
+}
+
+export interface TableInfo {
+  tableNumber: number
+  players: Player[]
+  emptySeats: number
+}
+
+export interface BalanceSuggestion {
+  player: Player
+  fromTable: number
+  toTable: number
+  reason: string
+}
+
+// Get table information for all tables
+export function getTableInfo(players: Player[], tableCount: number, seatsPerTable: number): TableInfo[] {
+  const tables: TableInfo[] = []
+  
+  for (let t = 1; t <= tableCount; t++) {
+    const tablePlayers = players.filter(p => !p.eliminated && p.tableNumber === t)
+      .sort((a, b) => (a.seatNumber || 0) - (b.seatNumber || 0))
+    tables.push({
+      tableNumber: t,
+      players: tablePlayers,
+      emptySeats: seatsPerTable - tablePlayers.length
+    })
+  }
+  
+  return tables
+}
+
+// Get unassigned active players
+export function getUnassignedPlayers(players: Player[]): Player[] {
+  return players.filter(p => !p.eliminated && p.tableNumber === null)
+}
+
+// Random seat assignment using snake draft for fairness
+export function assignPlayersToTables(
+  players: Player[], 
+  tableCount: number, 
+  seatsPerTable: number
+): Player[] {
+  const activePlayers = players.filter(p => !p.eliminated)
+  const eliminatedPlayers = players.filter(p => p.eliminated)
+  
+  // Shuffle active players randomly
+  const shuffled = [...activePlayers].sort(() => Math.random() - 0.5)
+  
+  // Create seat assignments using snake draft
+  const assignments: Map<string, TableAssignment> = new Map()
+  let playerIndex = 0
+  
+  // Fill tables round by round (snake pattern)
+  for (let seat = 1; seat <= seatsPerTable && playerIndex < shuffled.length; seat++) {
+    // Alternate direction each row for snake draft
+    const tables = seat % 2 === 1 
+      ? Array.from({ length: tableCount }, (_, i) => i + 1)
+      : Array.from({ length: tableCount }, (_, i) => tableCount - i)
+    
+    for (const table of tables) {
+      if (playerIndex >= shuffled.length) break
+      assignments.set(shuffled[playerIndex].id, { tableNumber: table, seatNumber: seat })
+      playerIndex++
+    }
+  }
+  
+  // Apply assignments to players
+  const assignedActive = activePlayers.map(p => ({
+    ...p,
+    tableNumber: assignments.get(p.id)?.tableNumber ?? null,
+    seatNumber: assignments.get(p.id)?.seatNumber ?? null
+  }))
+  
+  // Keep eliminated players without table assignments
+  const clearedEliminated = eliminatedPlayers.map(p => ({
+    ...p,
+    tableNumber: null,
+    seatNumber: null
+  }))
+  
+  return [...assignedActive, ...clearedEliminated]
+}
+
+// Clear all table assignments
+export function clearTableAssignments(players: Player[]): Player[] {
+  return players.map(p => ({
+    ...p,
+    tableNumber: null,
+    seatNumber: null
+  }))
+}
+
+// Get balance suggestions when tables are uneven
+export function getTableBalanceSuggestions(
+  players: Player[], 
+  tableCount: number, 
+  seatsPerTable: number
+): BalanceSuggestion[] {
+  const tables = getTableInfo(players, tableCount, seatsPerTable)
+  const suggestions: BalanceSuggestion[] = []
+  
+  // Find min and max table sizes
+  const tableSizes = tables.map(t => t.players.length).filter(s => s > 0)
+  if (tableSizes.length < 2) return suggestions
+  
+  const minSize = Math.min(...tableSizes)
+  const maxSize = Math.max(...tableSizes)
+  
+  // If difference is more than 1, suggest moves
+  if (maxSize - minSize > 1) {
+    const largestTable = tables.find(t => t.players.length === maxSize)
+    const smallestTable = tables.find(t => t.players.length === minSize)
+    
+    if (largestTable && smallestTable && largestTable.players.length > 0) {
+      // Suggest moving a random player from largest to smallest
+      const playerToMove = largestTable.players[Math.floor(Math.random() * largestTable.players.length)]
+      suggestions.push({
+        player: playerToMove,
+        fromTable: largestTable.tableNumber,
+        toTable: smallestTable.tableNumber,
+        reason: `Table ${largestTable.tableNumber} has ${largestTable.players.length} players, Table ${smallestTable.tableNumber} has ${smallestTable.players.length}`
+      })
+    }
+  }
+  
+  return suggestions
+}
+
+// Move a player to a specific table and seat
+export function movePlayerToSeat(
+  players: Player[], 
+  playerId: string, 
+  tableNumber: number, 
+  seatNumber: number
+): Player[] {
+  return players.map(p => 
+    p.id === playerId 
+      ? { ...p, tableNumber, seatNumber }
+      : p
+  )
+}
+
+// Check if a seat is occupied
+export function isSeatOccupied(players: Player[], tableNumber: number, seatNumber: number): boolean {
+  return players.some(p => !p.eliminated && p.tableNumber === tableNumber && p.seatNumber === seatNumber)
+}
+
+// Get next available seat at a table
+export function getNextAvailableSeat(players: Player[], tableNumber: number, seatsPerTable: number): number | null {
+  for (let seat = 1; seat <= seatsPerTable; seat++) {
+    if (!isSeatOccupied(players, tableNumber, seat)) {
+      return seat
+    }
+  }
+  return null
+}
+

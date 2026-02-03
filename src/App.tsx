@@ -11,6 +11,7 @@ import { Help } from './components/Help'
 import { Navigation } from './components/Navigation'
 import { Header } from './components/Header'
 import { ConfirmModal } from './components/Modal'
+import { Onboarding } from './components/Onboarding'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { emit, listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
@@ -18,6 +19,7 @@ import { invoke } from '@tauri-apps/api/core'
 // Check if running in Tauri - use function to check at runtime
 // Tauri v2 uses __TAURI_INTERNALS__, v1 used __TAURI__
 const checkIsTauri = () => typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
+const isTauri = checkIsTauri()
 
 const STORAGE_KEYS = {
   tournament: 'pokerpulse_tournament',
@@ -25,6 +27,7 @@ const STORAGE_KEYS = {
   history: 'pokerpulse_tournament_history',
   activeTab: 'pokerpulse_active_tab',
   themeSettings: 'pokerpulse_theme_settings',
+  onboardingComplete: 'pokerpulse_onboarding_complete',
 }
 
 const defaultSoundSettings: SoundSettings = {
@@ -127,9 +130,22 @@ export default function App() {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [isProjectorOpen, setIsProjectorOpen] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem(STORAGE_KEYS.onboardingComplete)
+  })
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const prevLevelRef = useRef(tournament.current_level)
   const warningSoundPlayedRef = useRef<{ 60: boolean; 30: boolean }>({ 60: false, 30: false })
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem(STORAGE_KEYS.onboardingComplete, 'true')
+    setShowOnboarding(false)
+  }
+
+  const handleShowOnboarding = () => {
+    setActiveTab('timer') // Switch to timer tab so highlights work
+    setShowOnboarding(true)
+  }
 
   // Check for updates on mount
   useEffect(() => {
@@ -396,11 +412,9 @@ export default function App() {
             time_remaining_seconds: Math.max(0, prev.time_remaining_seconds - 60),
           }))
           break
-        case 'KeyF':
-          if (!e.ctrlKey && !e.metaKey) {
-            e.preventDefault()
-            toggleFullscreen()
-          }
+        case 'F11':
+          e.preventDefault()
+          toggleFullscreen()
           break
         case 'Escape':
           if (isFullscreen) {
@@ -617,10 +631,11 @@ export default function App() {
               setThemeSettings={setThemeSettings}
               playTestSound={playLevelSound}
               resetTournament={resetTournament}
+              onShowOnboarding={handleShowOnboarding}
             />
           )}
           {activeTab === 'help' && (
-            <Help />
+            <Help onShowOnboarding={handleShowOnboarding} />
           )}
         </main>
       </div>
@@ -635,6 +650,14 @@ export default function App() {
         confirmText="Reset"
         variant="danger"
       />
+
+      {/* Onboarding */}
+      {showOnboarding && !isLoading && (
+        <Onboarding
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingComplete}
+        />
+      )}
     </div>
   )
 }

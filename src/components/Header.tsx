@@ -87,6 +87,7 @@ export function Header({ tournament, setTournament, isFullscreen, toggleFullscre
           {/* Projector Mode Button */}
           {onToggleProjector && (
             <button
+              data-onboarding="projector"
               onClick={onToggleProjector}
               className={`btn btn-ghost p-2 relative ${isProjectorOpen ? 'text-accent' : ''}`}
               title={isProjectorOpen ? t('header.closeProjector') : t('header.openProjector')}
@@ -145,7 +146,7 @@ export function Header({ tournament, setTournament, isFullscreen, toggleFullscre
                   </div>
                   <div className="flex items-center justify-between p-1.5 bg-themed-tertiary rounded">
                     <span className="text-themed-secondary">{t('header.shortcuts.fullscreen')}</span>
-                    <kbd className="px-2 py-0.5 bg-themed-secondary rounded text-themed-primary font-mono text-xs">F</kbd>
+                    <kbd className="px-2 py-0.5 bg-themed-secondary rounded text-themed-primary font-mono text-xs">F11</kbd>
                   </div>
                   <div className="flex items-center justify-between p-1.5 bg-themed-tertiary rounded">
                     <span className="text-themed-secondary">{t('header.shortcuts.exitFullscreen')}</span>
@@ -157,6 +158,7 @@ export function Header({ tournament, setTournament, isFullscreen, toggleFullscre
           </div>
 
           <button
+            data-onboarding="fullscreen"
             onClick={toggleFullscreen}
             className="btn btn-ghost p-2"
             title={isFullscreen ? t('header.shortcuts.exitFullscreen') : t('header.shortcuts.fullscreen')}

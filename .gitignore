@@ -33,3 +33,5 @@ src-tauri/gen/schemas/
 
 # Separate projects
 pokerpulsepro-landingpage/
+
+coverage/

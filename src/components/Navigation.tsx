@@ -50,6 +50,7 @@ export function Navigation({ activeTab, setActiveTab }: NavigationProps) {
       {tabIds.map((tabId) => (
         <button
           key={tabId}
+          data-onboarding={tabId}
           onClick={() => setActiveTab(tabId)}
           className={`
             w-14 h-14 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-200

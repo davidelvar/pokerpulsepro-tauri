@@ -1,6 +1,10 @@
 import { useTranslation } from 'react-i18next'
 
-export function Help() {
+interface HelpProps {
+  onShowOnboarding?: () => void
+}
+
+export function Help({ onShowOnboarding }: HelpProps) {
   const { t } = useTranslation()
   
   const hands = [
@@ -99,6 +103,17 @@ export function Help() {
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-themed-primary mb-2">{t('help.title')}</h1>
         <p className="text-themed-muted">{t('help.subtitle')}</p>
+        {onShowOnboarding && (
+          <button
+            onClick={onShowOnboarding}
+            className="mt-4 btn btn-primary"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {t('help.viewTutorial')}
+          </button>
+        )}
       </div>
 
       {/* Hand Rankings Grid */}

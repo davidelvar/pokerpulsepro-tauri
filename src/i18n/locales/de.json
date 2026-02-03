@@ -114,7 +114,39 @@
       "all": "Alle",
       "active": "Aktiv",
       "eliminated": "Ausgeschieden"
-    }
+    },
+    "viewList": "Liste",
+    "viewTables": "Tische",
+    "tableManagement": "Tischverwaltung",
+    "tables": "Tische",
+    "seatsEach": "Plätze je",
+    "tableCount": "Anzahl Tische",
+    "seatsPerTable": "Plätze pro Tisch",
+    "randomAssign": "Zufällig Zuweisen",
+    "clearAssignments": "Alle Löschen",
+    "unassigned": "nicht zugewiesen",
+    "tablesUnbalanced": "Tische unausgeglichen",
+    "balanceSuggestion": "Ausgleichsvorschlag",
+    "moveSuggestion": "{{player}} von Tisch {{from}} zu Tisch {{to}} verschieben",
+    "applyMove": "Anwenden",
+    "table": "Tisch",
+    "seats": "Plätze",
+    "emptyTable": "Keine Spieler an diesem Tisch",
+    "dropHere": "Spieler hier ablegen",
+    "notEnoughSeats": "Nicht genug Plätze! {{players}} Spieler aber nur {{capacity}} Plätze",
+    "addTable": "Auf {{count}} Tische setzen",
+    "couldConsolidate": "{{players}} Spieler würden auf {{tables}} Tische passen",
+    "consolidate": "Konsolidieren",
+    "allSeated": "Alle Spieler platziert",
+    "manageTables": "Tische Verwalten",
+    "noTable": "—",
+    "recommendedTables": "Empfohlen: {{count}} Tische",
+    "applyRecommendation": "Anwenden",
+    "unassignedPlayers": "Nicht zugewiesene Spieler",
+    "assignAll": "Alle zuweisen",
+    "filtered": "gefiltert",
+    "noMatchingPlayers": "Keine passenden Spieler",
+    "quickSet": "Schnell"
   },
   "blinds": {
     "title": "Blindstruktur",
@@ -150,7 +182,15 @@
     "cancel": "Abbrechen",
     "save": "Speichern",
     "clearTemplate": "Aktive Vorlage löschen",
-    "importedTemplate": "Importierte Vorlage"
+    "importedTemplate": "Importierte Vorlage",
+    "generateByDuration": "Nach Dauer generieren",
+    "generateByDurationDesc": "Lege deine Zielspielzeit fest und erhalte eine passende Struktur",
+    "targetDuration": "Turnier-Zieldauer",
+    "hours": "Stunden",
+    "levelStyle": "Level-Stil",
+    "preview": "Vorschau",
+    "breaks": "Pausen",
+    "generate": "Generieren"
   },
   "prizes": {
     "title": "Preispool",
@@ -172,7 +212,22 @@
     "finalStandings": "Endstand",
     "noEliminations": "Noch keine Ausscheidungen",
     "standingsWillAppear": "Der Endstand erscheint hier, wenn Spieler ausscheiden",
-    "ofPool": "vom Pool"
+    "ofPool": "vom Pool",
+    "myTemplates": "Meine Vorlagen",
+    "saveTemplate": "Vorlage Speichern",
+    "saveAsTemplate": "Als Vorlage Speichern",
+    "templateName": "Vorlagenname eingeben...",
+    "noCustomTemplates": "Noch keine Vorlagen gespeichert",
+    "saveCurrentToCreate": "Speichere deine aktuelle Struktur um eine zu erstellen",
+    "places": "Plätze",
+    "import": "Importieren",
+    "export": "Exportieren",
+    "delete": "Löschen",
+    "save": "Speichern",
+    "clearTemplate": "Aktive Vorlage löschen",
+    "importedTemplate": "Importierte Vorlage",
+    "exportTemplate": "In Datei exportieren",
+    "importTemplate": "Aus Datei importieren"
   },
   "settings": {
     "title": "Einstellungen",
@@ -238,6 +293,10 @@
     "noHistory": "Noch keine Turnierhistorie. Abgeschlossene Turniere erscheinen hier.",
     "clearHistory": "Gesamte Historie löschen",
     "clearHistoryConfirm": "Bist du sicher, dass du die gesamte Turnierhistorie löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "helpSupport": "Hilfe & Support",
+    "showTutorial": "App-Tutorial",
+    "showTutorialDesc": "Lerne PokerPulse Pro mit einer interaktiven Anleitung kennen",
+    "startTutorial": "Tutorial starten",
     "dangerZone": "Gefahrenzone",
     "resetTournament": "Turnier zurücksetzen",
     "resetTournamentDesc": "Alle Spieler löschen und Timer auf Level 1 zurücksetzen",
@@ -253,6 +312,7 @@
   "help": {
     "title": "Poker-Handrangliste",
     "subtitle": "Von der höchsten zur niedrigsten - lerne diese auswendig, um wie ein Profi zu spielen!",
+    "viewTutorial": "App-Tutorial ansehen",
     "hands": {
       "royalFlush": {
         "name": "Royal Flush",
@@ -354,5 +414,90 @@
     "success": "Erfolg",
     "warning": "Warnung",
     "info": "Info"
+  },
+  "onboarding": {
+    "skip": "Tutorial überspringen",
+    "next": "Weiter",
+    "previous": "Zurück",
+    "getStarted": "Los geht's!",
+    "accessLater": "Du kannst dieses Tutorial jederzeit über Einstellungen oder Hilfe aufrufen",
+    "steps": {
+      "welcome": {
+        "title": "Willkommen bei PokerPulse Pro!",
+        "description": "Dein professionelles Poker-Turnier-Management-Tool. Lass uns einen kurzen Rundgang durch die Hauptfunktionen machen."
+      },
+      "timer": {
+        "title": "Turnier-Timer",
+        "description": "Das Herzstück deines Turniers. Steuere die Blinds, verfolge die Zeit und verwalte den Levelfortschritt.",
+        "features": [
+          "Play/Pause mit der Leertaste",
+          "Levels mit den Pfeiltasten navigieren",
+          "Zeit hinzufügen oder entfernen nach Bedarf",
+          "Vollbildmodus für die Anzeige"
+        ]
+      },
+      "players": {
+        "title": "Spielerverwaltung",
+        "description": "Verfolge alle deine Spieler, ihre Buy-ins, Rebuys und Ausscheidungen.",
+        "features": [
+          "Spieler einfach hinzufügen und verwalten",
+          "Buy-ins, Rebuys und Add-ons verfolgen",
+          "Spieler Tischen zuweisen",
+          "Ausscheidungen und Platzierungen erfassen"
+        ]
+      },
+      "blinds": {
+        "title": "Blind-Struktur",
+        "description": "Passe deine Blind-Levels an deinen Turnierstil an.",
+        "features": [
+          "Wähle aus vordefinierten Vorlagen",
+          "Erstelle eigene Blind-Strukturen",
+          "Generiere nach Zieldauer",
+          "Füge Pausen zwischen den Levels hinzu"
+        ]
+      },
+      "prizes": {
+        "title": "Preisverteilung",
+        "description": "Berechne und zeige automatisch die Preispool-Verteilung an.",
+        "features": [
+          "Auto-Berechnung basierend auf Buy-ins",
+          "Anpassbare Auszahlungsprozentsätze",
+          "Zeigt Spielerzuordnungen",
+          "Unterstützt mehrere Auszahlungsstrukturen"
+        ]
+      },      "settings": {
+        "title": "Einstellungen",
+        "description": "Passe dein Turniererlebnis mit umfassenden Einstellungen an.",
+        "features": [
+          "Thema und Akzentfarben",
+          "Sound- und Benachrichtigungsoptionen",
+          "Turnier-Standardwerte",
+          "Sprachauswahl"
+        ]
+      },      "projector": {
+        "title": "Projektor-Ansicht",
+        "description": "Öffne ein separates Fenster, optimiert für große Bildschirme und Projektoren.",
+        "features": [
+          "Klare, lesbare Anzeige",
+          "Zeigt aktuelle und nächste Blinds",
+          "Spieleranzahl und Preispool",
+          "Perfekt für TV oder Projektor"
+        ]
+      },
+      "fullscreen": {
+        "title": "Vollbildmodus",
+        "description": "Maximiere die App für ein ablenkungsfreies Turniererlebnis.",
+        "features": [
+          "Fenstersteuerungen ausblenden",
+          "Gesamten Bildschirm nutzen",
+          "F11 zum Umschalten drücken",
+          "Ideal für dedizierte Setups"
+        ]
+      },
+      "ready": {
+        "title": "Alles bereit!",
+        "description": "Du bist bereit, dein erstes Turnier zu starten. Viel Glück an den Tischen!"
+      }
+    }
   }
 }

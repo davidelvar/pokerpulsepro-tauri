@@ -114,7 +114,39 @@
       "all": "All",
       "active": "Active",
       "eliminated": "Eliminated"
-    }
+    },
+    "viewList": "List",
+    "viewTables": "Tables",
+    "tableManagement": "Table Management",
+    "tables": "Tables",
+    "seatsEach": "Seats each",
+    "tableCount": "Number of Tables",
+    "seatsPerTable": "Seats per Table",
+    "randomAssign": "Random Assign",
+    "clearAssignments": "Clear All",
+    "unassigned": "unassigned",
+    "tablesUnbalanced": "Tables unbalanced",
+    "balanceSuggestion": "Balance Suggestion",
+    "moveSuggestion": "Move {{player}} from Table {{from}} to Table {{to}}",
+    "applyMove": "Apply",
+    "table": "Table",
+    "seats": "seats",
+    "emptyTable": "No players at this table",
+    "dropHere": "Drop player here",
+    "notEnoughSeats": "Not enough seats! {{players}} players but only {{capacity}} seats",
+    "addTable": "Set to {{count}} tables",
+    "couldConsolidate": "{{players}} players could fit on {{tables}} tables",
+    "consolidate": "Consolidate",
+    "allSeated": "All players seated",
+    "manageTables": "Manage Tables",
+    "noTable": "—",
+    "recommendedTables": "Recommended: {{count}} tables",
+    "applyRecommendation": "Apply",
+    "unassignedPlayers": "Unassigned Players",
+    "assignAll": "Assign All",
+    "filtered": "filtered",
+    "noMatchingPlayers": "No matching players",
+    "quickSet": "Quick"
   },
   "blinds": {
     "title": "Blind Structure",
@@ -150,7 +182,15 @@
     "cancel": "Cancel",
     "save": "Save",
     "clearTemplate": "Clear active template",
-    "importedTemplate": "Imported Template"
+    "importedTemplate": "Imported Template",
+    "generateByDuration": "Generate by Duration",
+    "generateByDurationDesc": "Set your target playtime and get a custom structure",
+    "targetDuration": "Target Tournament Duration",
+    "hours": "hours",
+    "levelStyle": "Level Style",
+    "preview": "Preview",
+    "breaks": "breaks",
+    "generate": "Generate"
   },
   "prizes": {
     "title": "Prize Pool",
@@ -172,7 +212,22 @@
     "finalStandings": "Final Standings",
     "noEliminations": "No eliminations yet",
     "standingsWillAppear": "Final standings will appear here as players are eliminated",
-    "ofPool": "of pool"
+    "ofPool": "of pool",
+    "myTemplates": "My Templates",
+    "saveTemplate": "Save Template",
+    "saveAsTemplate": "Save as Template",
+    "templateName": "Enter template name...",
+    "noCustomTemplates": "No custom templates saved yet",
+    "saveCurrentToCreate": "Save your current structure to create one",
+    "places": "places",
+    "import": "Import",
+    "export": "Export",
+    "delete": "Delete",
+    "save": "Save",
+    "clearTemplate": "Clear active template",
+    "importedTemplate": "Imported Template",
+    "exportTemplate": "Export to file",
+    "importTemplate": "Import from file"
   },
   "settings": {
     "title": "Settings",
@@ -238,6 +293,10 @@
     "noHistory": "No tournament history yet. Complete tournaments will appear here.",
     "clearHistory": "Clear All History",
     "clearHistoryConfirm": "Are you sure you want to clear all tournament history? This action cannot be undone.",
+    "helpSupport": "Help & Support",
+    "showTutorial": "App Tutorial",
+    "showTutorialDesc": "Learn how to use PokerPulse Pro with an interactive guide",
+    "startTutorial": "Start Tutorial",
     "dangerZone": "Danger Zone",
     "resetTournament": "Reset Tournament",
     "resetTournamentDesc": "Clear all players and reset timer to Level 1",
@@ -253,6 +312,7 @@
   "help": {
     "title": "Poker Hand Rankings",
     "subtitle": "From highest to lowest - memorize these to play like a pro!",
+    "viewTutorial": "View App Tutorial",
     "hands": {
       "royalFlush": {
         "name": "Royal Flush",
@@ -354,5 +414,92 @@
     "success": "Success",
     "warning": "Warning",
     "info": "Info"
+  },
+  "onboarding": {
+    "skip": "Skip Tutorial",
+    "next": "Next",
+    "previous": "Back",
+    "getStarted": "Get Started!",
+    "accessLater": "You can always access this tutorial from Settings or Help",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to PokerPulse Pro!",
+        "description": "Your professional poker tournament management tool. Let's take a quick tour of the main features."
+      },
+      "timer": {
+        "title": "Tournament Timer",
+        "description": "The heart of your tournament. Control blinds, track time, and manage level progression.",
+        "features": [
+          "Play/pause with spacebar",
+          "Navigate levels with arrow keys",
+          "Add or remove time as needed",
+          "Fullscreen mode for display"
+        ]
+      },
+      "players": {
+        "title": "Player Management",
+        "description": "Track all your players, their buy-ins, rebuys, and eliminations.",
+        "features": [
+          "Add and manage players easily",
+          "Track buy-ins, rebuys, and add-ons",
+          "Assign players to tables",
+          "Record eliminations and placements"
+        ]
+      },
+      "blinds": {
+        "title": "Blind Structure",
+        "description": "Customize your blind levels to match your tournament style.",
+        "features": [
+          "Choose from preset templates",
+          "Create custom blind structures",
+          "Generate by target duration",
+          "Add breaks between levels"
+        ]
+      },
+      "prizes": {
+        "title": "Prize Distribution",
+        "description": "Automatically calculate and display prize pool distribution.",
+        "features": [
+          "Auto-calculates based on buy-ins",
+          "Customizable payout percentages",
+          "Shows player assignments",
+          "Supports multiple payout structures"
+        ]
+      },
+      "settings": {
+        "title": "Settings",
+        "description": "Customize your tournament experience with comprehensive settings.",
+        "features": [
+          "Theme and accent colors",
+          "Sound and notification options",
+          "Tournament defaults",
+          "Language selection"
+        ]
+      },
+      "projector": {
+        "title": "Projector View",
+        "description": "Open a separate window optimized for large displays and projectors.",
+        "features": [
+          "Clean, readable display",
+          "Shows current and next blinds",
+          "Player count and prize pool",
+          "Perfect for TV or projector"
+        ]
+      },
+      "fullscreen": {
+        "title": "Fullscreen Mode",
+        "description": "Maximize the app for a distraction-free tournament experience.",
+        "features": [
+          "Hide window controls",
+          "Use entire screen",
+          "Press F11 to toggle",
+          "Great for dedicated setups"
+        ]
+      },
+      "ready": {
+        "title": "You're All Set!",
+        "description": "You're ready to run your first tournament. Good luck at the tables!"
+      }
+    }
   }
 }

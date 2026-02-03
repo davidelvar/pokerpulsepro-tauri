@@ -32,6 +32,9 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
   const [newTemplateName, setNewTemplateName] = useState('')
   const [showCustomTemplates, setShowCustomTemplates] = useState(false)
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null)
+  const [showDurationGenerator, setShowDurationGenerator] = useState(false)
+  const [targetHours, setTargetHours] = useState<number>(3)
+  const [levelStyle, setLevelStyle] = useState<'turbo' | 'regular' | 'deep'>('regular')
   const tableRef = useRef<HTMLTableSectionElement>(null)
   const isDragging = useRef(false)
 
@@ -298,6 +301,109 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
     setActiveTemplate(imported.name || t('blinds.importedTemplate'))
   }
 
+  // Generate blinds based on target duration
+  const generateByDuration = () => {
+    const totalMinutes = targetHours * 60
+    
+    // Determine level duration and break frequency based on style
+    const levelConfig = {
+      turbo: { levelDuration: 10, breakDuration: 5, levelsPerBreak: 6 },
+      regular: { levelDuration: 15, breakDuration: 10, levelsPerBreak: 5 },
+      deep: { levelDuration: 20, breakDuration: 15, levelsPerBreak: 4 }
+    }
+    
+    const config = levelConfig[levelStyle]
+    
+    // Calculate how many levels we can fit
+    // Account for breaks: every N levels, add a break
+    let remainingMinutes = totalMinutes
+    const levels: BlindLevel[] = []
+    let levelCount = 0
+    
+    // Standard blind progression (small blind values)
+    const blindProgression = [
+      25, 50, 75, 100, 150, 200, 300, 400, 500, 600, 800, 1000,
+      1200, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 8000, 10000,
+      12000, 15000, 20000, 25000, 30000, 40000, 50000
+    ]
+    
+    // Ante progression (starts after a few levels)
+    const anteStartLevel = levelStyle === 'deep' ? 5 : levelStyle === 'regular' ? 4 : 3
+    
+    while (remainingMinutes >= config.levelDuration && levelCount < blindProgression.length) {
+      // Check if we need a break
+      if (levelCount > 0 && levelCount % config.levelsPerBreak === 0 && remainingMinutes >= config.breakDuration + config.levelDuration) {
+        levels.push({
+          id: generateId(),
+          small_blind: 0,
+          big_blind: 0,
+          ante: 0,
+          duration_minutes: config.breakDuration,
+          is_break: true
+        })
+        remainingMinutes -= config.breakDuration
+      }
+      
+      // Add blind level
+      const smallBlind = blindProgression[levelCount]
+      const bigBlind = smallBlind * 2
+      const ante = levelCount >= anteStartLevel ? Math.round(smallBlind / 4) : 0
+      
+      levels.push({
+        id: generateId(),
+        small_blind: smallBlind,
+        big_blind: bigBlind,
+        ante: ante,
+        duration_minutes: config.levelDuration,
+        is_break: false
+      })
+      
+      remainingMinutes -= config.levelDuration
+      levelCount++
+    }
+    
+    // Ensure we have at least 4 levels
+    if (levels.filter(l => !l.is_break).length < 4) {
+      return // Don't apply if too short
+    }
+    
+    setTournament({
+      ...tournament,
+      blind_structure: levels,
+      current_level: 0,
+      time_remaining_seconds: levels[0].duration_minutes * 60
+    })
+    
+    const styleNames = { turbo: 'Turbo', regular: 'Regular', deep: 'Deep' }
+    setActiveTemplate(`${targetHours}h ${styleNames[levelStyle]}`)
+    setShowDurationGenerator(false)
+  }
+
+  // Calculate estimated duration for preview
+  const getEstimatedDuration = () => {
+    const config = {
+      turbo: { levelDuration: 10, breakDuration: 5, levelsPerBreak: 6 },
+      regular: { levelDuration: 15, breakDuration: 10, levelsPerBreak: 5 },
+      deep: { levelDuration: 20, breakDuration: 15, levelsPerBreak: 4 }
+    }[levelStyle]
+    
+    const totalMinutes = targetHours * 60
+    let remaining = totalMinutes
+    let levels = 0
+    let breaks = 0
+    
+    while (remaining >= config.levelDuration && levels < 29) {
+      if (levels > 0 && levels % config.levelsPerBreak === 0 && remaining >= config.breakDuration + config.levelDuration) {
+        breaks++
+        remaining -= config.breakDuration
+      }
+      levels++
+      remaining -= config.levelDuration
+    }
+    
+    return { levels, breaks }
+  }
+
   const applyTemplate = (template: 'turbo' | 'regular' | 'deep') => {
     const templates: Record<string, BlindLevel[]> = {
       turbo: [
@@ -419,8 +525,115 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
           </button>
         </div>
 
+        {/* Generate by Duration */}
+        <div className="border-t border-zinc-700/20 pt-4 mt-4">
+          <button
+            onClick={() => setShowDurationGenerator(!showDurationGenerator)}
+            className={`w-full group p-3 rounded-xl bg-themed-tertiary/50 hover:bg-themed-tertiary border transition-all text-left flex items-center gap-3 ${
+              showDurationGenerator ? 'border-accent/30 bg-themed-tertiary' : 'border-transparent hover:border-accent/30'
+            }`}
+          >
+            <div className="text-2xl group-hover:scale-110 transition-transform">⏱️</div>
+            <div className="flex-1">
+              <div className="text-sm font-medium text-themed-primary">{t('blinds.generateByDuration')}</div>
+              <div className="text-xs text-themed-muted">{t('blinds.generateByDurationDesc')}</div>
+            </div>
+            <svg 
+              className={`w-5 h-5 text-themed-muted transition-transform ${showDurationGenerator ? 'rotate-180' : ''}`} 
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showDurationGenerator && (
+            <div className="mt-4 p-4 rounded-xl bg-themed-tertiary/30 border border-themed space-y-4">
+              {/* Duration Input */}
+              <div>
+                <label className="block text-sm font-medium text-themed-primary mb-2">
+                  {t('blinds.targetDuration')}
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="1"
+                    max="8"
+                    step="0.5"
+                    value={targetHours}
+                    onChange={(e) => setTargetHours(parseFloat(e.target.value))}
+                    className="flex-1 accent-accent"
+                  />
+                  <div className="w-20 text-center">
+                    <span className="text-2xl font-bold text-accent">{targetHours}</span>
+                    <span className="text-sm text-themed-muted ml-1">{t('blinds.hours')}</span>
+                  </div>
+                </div>
+                <div className="flex justify-between text-xs text-themed-muted mt-1">
+                  <span>1h</span>
+                  <span>4h</span>
+                  <span>8h</span>
+                </div>
+              </div>
+
+              {/* Style Selection */}
+              <div>
+                <label className="block text-sm font-medium text-themed-primary mb-2">
+                  {t('blinds.levelStyle')}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['turbo', 'regular', 'deep'] as const).map((style) => {
+                    const styleInfo = {
+                      turbo: { icon: '⚡', label: 'Turbo', duration: '10m' },
+                      regular: { icon: '🎯', label: 'Regular', duration: '15m' },
+                      deep: { icon: '🏔️', label: 'Deep', duration: '20m' }
+                    }[style]
+                    return (
+                      <button
+                        key={style}
+                        onClick={() => setLevelStyle(style)}
+                        className={`p-2 rounded-lg border transition-all text-center ${
+                          levelStyle === style
+                            ? 'border-accent bg-accent/10 text-accent'
+                            : 'border-transparent bg-themed-tertiary/50 hover:border-accent/30 text-themed-primary'
+                        }`}
+                      >
+                        <span className="text-lg">{styleInfo.icon}</span>
+                        <div className="text-xs font-medium">{styleInfo.label}</div>
+                        <div className="text-xs text-themed-muted">{styleInfo.duration}</div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="p-3 rounded-lg bg-themed-secondary/30 border border-themed">
+                <div className="text-xs text-themed-muted mb-1">{t('blinds.preview')}</div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-lg font-semibold text-themed-primary">
+                      {getEstimatedDuration().levels} {t('blinds.levels')}
+                    </span>
+                    {getEstimatedDuration().breaks > 0 && (
+                      <span className="text-sm text-themed-muted ml-2">
+                        + {getEstimatedDuration().breaks} {t('blinds.breaks')}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={generateByDuration}
+                    className="btn btn-primary text-sm"
+                  >
+                    {t('blinds.generate')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Custom Templates */}
-        <div className="border-t border-zinc-700/20 pt-4">
+        <div className="border-t border-zinc-700/20 pt-4 mt-4">
           <div className="grid grid-cols-4 gap-2">
             <button 
               onClick={importTemplate} 

@@ -114,7 +114,39 @@
       "all": "Todos",
       "active": "Ativos",
       "eliminated": "Eliminados"
-    }
+    },
+    "viewList": "Lista",
+    "viewTables": "Mesas",
+    "tableManagement": "Gestão de Mesas",
+    "tables": "Mesas",
+    "seatsEach": "Lugares c/uma",
+    "tableCount": "Número de Mesas",
+    "seatsPerTable": "Lugares por Mesa",
+    "randomAssign": "Atribuição Aleatória",
+    "clearAssignments": "Limpar Tudo",
+    "unassigned": "não atribuídos",
+    "tablesUnbalanced": "Mesas desequilibradas",
+    "balanceSuggestion": "Sugestão de Equilíbrio",
+    "moveSuggestion": "Mover {{player}} da Mesa {{from}} para Mesa {{to}}",
+    "applyMove": "Aplicar",
+    "table": "Mesa",
+    "seats": "lugares",
+    "emptyTable": "Nenhum jogador nesta mesa",
+    "dropHere": "Soltar jogador aqui",
+    "notEnoughSeats": "Lugares insuficientes! {{players}} jogadores mas apenas {{capacity}} lugares",
+    "addTable": "Usar {{count}} mesas",
+    "couldConsolidate": "{{players}} jogadores caberiam em {{tables}} mesas",
+    "consolidate": "Consolidar",
+    "allSeated": "Todos os jogadores sentados",
+    "manageTables": "Gerenciar Mesas",
+    "noTable": "—",
+    "recommendedTables": "Recomendado: {{count}} mesas",
+    "applyRecommendation": "Aplicar",
+    "unassignedPlayers": "Jogadores não Atribuídos",
+    "assignAll": "Atribuir Todos",
+    "filtered": "filtrados",
+    "noMatchingPlayers": "Nenhum jogador correspondente",
+    "quickSet": "Rápido"
   },
   "blinds": {
     "title": "Estrutura de Blinds",
@@ -150,7 +182,15 @@
     "cancel": "Cancelar",
     "save": "Salvar",
     "clearTemplate": "Limpar modelo ativo",
-    "importedTemplate": "Modelo Importado"
+    "importedTemplate": "Modelo Importado",
+    "generateByDuration": "Gerar por Duração",
+    "generateByDurationDesc": "Defina seu tempo de jogo e obtenha uma estrutura personalizada",
+    "targetDuration": "Duração do Torneio",
+    "hours": "horas",
+    "levelStyle": "Estilo de Nível",
+    "preview": "Prévia",
+    "breaks": "intervalos",
+    "generate": "Gerar"
   },
   "prizes": {
     "title": "Premiação",
@@ -172,7 +212,22 @@
     "finalStandings": "Classificação Final",
     "noEliminations": "Sem eliminações ainda",
     "standingsWillAppear": "A classificação final aparecerá aqui conforme os jogadores são eliminados",
-    "ofPool": "do total"
+    "ofPool": "do total",
+    "myTemplates": "Meus Modelos",
+    "saveTemplate": "Salvar Modelo",
+    "saveAsTemplate": "Salvar como Modelo",
+    "templateName": "Nome do modelo...",
+    "noCustomTemplates": "Nenhum modelo personalizado salvo",
+    "saveCurrentToCreate": "Salve sua estrutura atual para criar um",
+    "places": "posições",
+    "import": "Importar",
+    "export": "Exportar",
+    "delete": "Excluir",
+    "save": "Salvar",
+    "clearTemplate": "Limpar modelo ativo",
+    "importedTemplate": "Modelo Importado",
+    "exportTemplate": "Exportar para arquivo",
+    "importTemplate": "Importar de arquivo"
   },
   "settings": {
     "title": "Configurações",
@@ -238,6 +293,10 @@
     "noHistory": "Nenhum histórico de torneios ainda. Torneios concluídos aparecerão aqui.",
     "clearHistory": "Limpar Todo o Histórico",
     "clearHistoryConfirm": "Tem certeza que deseja limpar todo o histórico de torneios? Esta ação não pode ser desfeita.",
+    "helpSupport": "Ajuda & Suporte",
+    "showTutorial": "Tutorial do App",
+    "showTutorialDesc": "Aprenda a usar o PokerPulse Pro com um guia interativo",
+    "startTutorial": "Iniciar Tutorial",
     "dangerZone": "Zona de Perigo",
     "resetTournament": "Reiniciar Torneio",
     "resetTournamentDesc": "Limpar todos os jogadores e reiniciar cronômetro para o Nível 1",
@@ -253,6 +312,7 @@
   "help": {
     "title": "Ranking de Mãos de Poker",
     "subtitle": "Da mais alta para a mais baixa - memorize estas para jogar como um profissional!",
+    "viewTutorial": "Ver Tutorial do App",
     "hands": {
       "royalFlush": {
         "name": "Royal Flush",
@@ -354,5 +414,90 @@
     "success": "Sucesso",
     "warning": "Aviso",
     "info": "Info"
+  },
+  "onboarding": {
+    "skip": "Pular Tutorial",
+    "next": "Próximo",
+    "previous": "Voltar",
+    "getStarted": "Vamos Começar!",
+    "accessLater": "Você sempre pode acessar este tutorial em Configurações ou Ajuda",
+    "steps": {
+      "welcome": {
+        "title": "Bem-vindo ao PokerPulse Pro!",
+        "description": "Sua ferramenta profissional de gerenciamento de torneios de poker. Vamos fazer um tour rápido pelos recursos principais."
+      },
+      "timer": {
+        "title": "Cronômetro do Torneio",
+        "description": "O coração do seu torneio. Controle os blinds, acompanhe o tempo e gerencie a progressão dos níveis.",
+        "features": [
+          "Play/pause com a barra de espaço",
+          "Navegue entre níveis com as setas",
+          "Adicione ou remova tempo conforme necessário",
+          "Modo tela cheia para exibição"
+        ]
+      },
+      "players": {
+        "title": "Gerenciamento de Jogadores",
+        "description": "Acompanhe todos os seus jogadores, seus buy-ins, rebuys e eliminações.",
+        "features": [
+          "Adicione e gerencie jogadores facilmente",
+          "Acompanhe buy-ins, rebuys e add-ons",
+          "Atribua jogadores às mesas",
+          "Registre eliminações e colocações"
+        ]
+      },
+      "blinds": {
+        "title": "Estrutura de Blinds",
+        "description": "Personalize seus níveis de blind de acordo com o estilo do seu torneio.",
+        "features": [
+          "Escolha entre modelos predefinidos",
+          "Crie estruturas de blinds personalizadas",
+          "Gere por duração alvo",
+          "Adicione intervalos entre os níveis"
+        ]
+      },
+      "prizes": {
+        "title": "Distribuição de Prêmios",
+        "description": "Calcule e exiba automaticamente a distribuição do prêmio.",
+        "features": [
+          "Cálculo automático baseado em buy-ins",
+          "Porcentagens de pagamento personalizáveis",
+          "Mostra atribuições dos jogadores",
+          "Suporta múltiplas estruturas de pagamento"
+        ]
+      },      "settings": {
+        "title": "Configurações",
+        "description": "Personalize sua experiência de torneio com configurações completas.",
+        "features": [
+          "Tema e cores de destaque",
+          "Opções de som e notificações",
+          "Padrões do torneio",
+          "Seleção de idioma"
+        ]
+      },      "projector": {
+        "title": "Visão do Projetor",
+        "description": "Abra uma janela separada otimizada para telas grandes e projetores.",
+        "features": [
+          "Exibição limpa e legível",
+          "Mostra blinds atuais e próximos",
+          "Contagem de jogadores e prêmio",
+          "Perfeito para TV ou projetor"
+        ]
+      },
+      "fullscreen": {
+        "title": "Modo Tela Cheia",
+        "description": "Maximize o app para uma experiência de torneio sem distrações.",
+        "features": [
+          "Ocultar controles da janela",
+          "Usar a tela inteira",
+          "Pressione F11 para alternar",
+          "Ótimo para configurações dedicadas"
+        ]
+      },
+      "ready": {
+        "title": "Tudo Pronto!",
+        "description": "Você está pronto para executar seu primeiro torneio. Boa sorte nas mesas!"
+      }
+    }
   }
 }

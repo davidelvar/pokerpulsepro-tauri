@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { Tournament, SoundSettings, ThemeSettings, ThemeMode, AccentColor, TournamentHistoryEntry } from '../types'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs'
-import { calculatePrizePool, formatCurrency } from '../utils'
+import { formatCurrency } from '../utils'
 import { AlertModal, ConfirmModal, PromptModal } from './Modal'
 import { SUPPORTED_LANGUAGES } from '../i18n'
 
@@ -16,6 +16,7 @@ interface SettingsProps {
   setThemeSettings: (t: ThemeSettings) => void
   playTestSound: () => void
   resetTournament: () => void
+  onShowOnboarding?: () => void
 }
 
 // Modal state type
@@ -48,7 +49,7 @@ const CHIP_PRESETS = [
   { name: 'Super Deep', chips: 20000, description: 'Maximum depth' },
 ]
 
-export function Settings({ tournament, setTournament, soundSettings, setSoundSettings, themeSettings, setThemeSettings, playTestSound, resetTournament }: SettingsProps) {
+export function Settings({ tournament, setTournament, soundSettings, setSoundSettings, themeSettings, setThemeSettings, playTestSound, resetTournament, onShowOnboarding }: SettingsProps) {
   const { t, i18n } = useTranslation()
   const [tournamentHistory, setTournamentHistory] = useState<TournamentHistoryEntry[]>([])
   const [showHistory, setShowHistory] = useState(true)
@@ -60,10 +61,6 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
 
   const showConfirm = (title: string, message: string, onConfirm: () => void, variant?: 'danger' | 'primary') => {
     setModal({ type: 'confirm', title, message, onConfirm, variant })
-  }
-
-  const showPrompt = (title: string, onSubmit: (value: string) => void, message?: string, placeholder?: string) => {
-    setModal({ type: 'prompt', title, message, placeholder, onSubmit })
   }
 
   const closeModal = () => setModal({ type: 'none' })
@@ -192,28 +189,6 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
       players: [], // Reset players on import
     })
     showAlert(t('settings.exportComplete'), t('settings.exportSuccess'), 'success')
-  }
-
-  // Complete tournament and add to history
-  const completeTournament = (winnerName?: string) => {
-    const winner = winnerName || tournament.players.find(p => p.placement === 1)?.name || null
-    const totalLevelMinutes = tournament.blind_structure
-      .slice(0, tournament.current_level + 1)
-      .reduce((sum, level) => sum + level.duration_minutes, 0)
-
-    const entry: TournamentHistoryEntry = {
-      id: `${Date.now()}`,
-      name: tournament.name,
-      date: new Date().toISOString(),
-      playerCount: tournament.players.length,
-      winner: winner,
-      prizePool: calculatePrizePool(tournament),
-      currency_symbol: tournament.currency_symbol,
-      duration_minutes: totalLevelMinutes,
-    }
-
-    saveHistory([entry, ...tournamentHistory].slice(0, 50)) // Keep last 50
-    showAlert(t('settings.tournamentComplete'), t('settings.tournamentSaved'), 'success')
   }
 
   const deleteHistoryEntry = (id: string) => {
@@ -797,6 +772,25 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
           </div>
         )}
       </div>
+
+      {/* Help & Support */}
+      {onShowOnboarding && (
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold mb-4 text-themed-primary">{t('settings.helpSupport')}</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-medium text-themed-primary">{t('settings.showTutorial')}</div>
+              <div className="text-sm text-themed-muted">{t('settings.showTutorialDesc')}</div>
+            </div>
+            <button onClick={onShowOnboarding} className="btn btn-secondary">
+              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {t('settings.startTutorial')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Danger Zone */}
       <div className="card p-6 border-red-500/20">
