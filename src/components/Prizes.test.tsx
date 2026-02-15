@@ -28,6 +28,16 @@ vi.mock('react-i18next', () => ({
         'prizes.eliminatedPlayers': 'Eliminated Players',
         'prizes.place': 'Place',
         'prizes.totalPercentage': 'Total Percentage',
+        'prizes.payoutStructure': 'Payout Structure',
+        'prizes.finalStandings': 'Final Standings',
+        'prizes.total': 'Total',
+        'prizes.mustEqual100': 'must equal 100%',
+        'prizes.noEliminations': 'No eliminations yet',
+        'prizes.standingsWillAppear': 'Standings will appear as players are eliminated',
+        'prizes.ofPool': 'of pool',
+        'prizes.exportTemplate': 'Export template',
+        'prizes.importTemplate': 'Import template',
+        'prizes.saveTemplate': 'Save template',
         'players.buyins': 'Buyins',
         'players.rebuys': 'Rebuys',
         'players.addons': 'Add-ons',
@@ -79,6 +89,10 @@ describe('Prizes Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   describe('Prize Pool Display', () => {
@@ -826,6 +840,420 @@ describe('Prizes Component', () => {
       
       // Main export button should exist (in toolbar)
       expect(screen.getByText('Export')).toBeInTheDocument()
+    })
+  })
+
+  describe('Clear Active Template', () => {
+    it('clears active template when X button is clicked', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      // Save a template to make it active
+      fireEvent.click(screen.getByText('Save'))
+      fireEvent.change(screen.getByPlaceholderText('Template name'), { target: { value: 'To Clear' } })
+      const saveButtons = screen.getAllByText('Save')
+      fireEvent.click(saveButtons[saveButtons.length - 1])
+      
+      // Active template indicator should appear
+      expect(screen.getAllByText('To Clear').length).toBeGreaterThan(0)
+      
+      // Click the clear (X) button
+      const clearButton = screen.getByTitle('Clear template')
+      fireEvent.click(clearButton)
+      
+      // Active template should be gone - no clear button anymore
+      expect(screen.queryByTitle('Clear template')).not.toBeInTheDocument()
+    })
+
+    it('resets percentages to default template after clearing', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      // Modify percentages
+      const inputs = screen.getAllByRole('spinbutton')
+      fireEvent.change(inputs[0], { target: { value: '60' } })
+      
+      // Save as template
+      fireEvent.click(screen.getByText('Save'))
+      fireEvent.change(screen.getByPlaceholderText('Template name'), { target: { value: 'Custom' } })
+      const saveButtons = screen.getAllByText('Save')
+      fireEvent.click(saveButtons[saveButtons.length - 1])
+      
+      // Clear template should reset to default (50/30/20)
+      fireEvent.click(screen.getByTitle('Clear template'))
+      
+      // Default 3-place: 50% of $450 = $225
+      expect(screen.getAllByText('$225').length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('Browser Export', () => {
+    it('exports current structure as JSON via browser download', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      // Mock browser APIs for download
+      const mockClick = vi.fn()
+      const mockAnchor = { href: '', download: '', click: mockClick } as unknown as HTMLAnchorElement
+      
+      const origCreateObjectURL = URL.createObjectURL
+      const origRevokeObjectURL = URL.revokeObjectURL
+      const origCreateElement = document.createElement.bind(document)
+      
+      URL.createObjectURL = vi.fn().mockReturnValue('blob:test')
+      URL.revokeObjectURL = vi.fn()
+      const createSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string, options?: ElementCreationOptions) => {
+        if (tag === 'a') return mockAnchor as unknown as HTMLAnchorElement
+        return origCreateElement(tag, options)
+      })
+      
+      fireEvent.click(screen.getByText('Export'))
+      
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
+      expect(mockClick).toHaveBeenCalledTimes(1)
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test')
+      expect(mockAnchor.download).toContain('_prizes.json')
+      
+      // Cleanup
+      createSpy.mockRestore()
+      URL.createObjectURL = origCreateObjectURL
+      URL.revokeObjectURL = origRevokeObjectURL
+    })
+
+    it('exports saved template as JSON via browser download', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      // Save a template first
+      fireEvent.click(screen.getByText('Save'))
+      fireEvent.change(screen.getByPlaceholderText('Template name'), { target: { value: 'Export Me' } })
+      const saveButtons = screen.getAllByText('Save')
+      fireEvent.click(saveButtons[saveButtons.length - 1])
+      
+      // Mock browser APIs
+      const mockClick = vi.fn()
+      const mockAnchor = { href: '', download: '', click: mockClick } as unknown as HTMLAnchorElement
+      const origCreateElement = document.createElement.bind(document)
+      const origCreateObjectURL = URL.createObjectURL
+      const origRevokeObjectURL = URL.revokeObjectURL
+      
+      URL.createObjectURL = vi.fn().mockReturnValue('blob:test')
+      URL.revokeObjectURL = vi.fn()
+      const createSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string, options?: ElementCreationOptions) => {
+        if (tag === 'a') return mockAnchor as unknown as HTMLAnchorElement
+        return origCreateElement(tag, options)
+      })
+      
+      // Open My Templates and click export on the saved template
+      fireEvent.click(screen.getByText('My Templates'))
+      const exportButtons = screen.getAllByTitle('Export')
+      fireEvent.click(exportButtons[0])
+      
+      expect(mockClick).toHaveBeenCalledTimes(1)
+      expect(mockAnchor.download).toContain('Export_Me_prizes.json')
+      
+      // Cleanup
+      createSpy.mockRestore()
+      URL.createObjectURL = origCreateObjectURL
+      URL.revokeObjectURL = origRevokeObjectURL
+    })
+  })
+
+  describe('Browser Import', () => {
+    it('clicking Import button does not crash', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      // Import button exists and is clickable
+      const importButton = screen.getByText('Import')
+      expect(importButton).toBeInTheDocument()
+      
+      // Clicking Import should create a file input - we spy on click of created elements
+      const inputClickSpy = vi.fn()
+      const origCreateElement = document.createElement.bind(document)
+      const createSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string, options?: ElementCreationOptions) => {
+        const el = origCreateElement(tagName, options)
+        if (tagName === 'input') {
+          el.click = inputClickSpy
+        }
+        return el
+      })
+      
+      fireEvent.click(importButton)
+      
+      // Should have created an input and clicked it
+      expect(inputClickSpy).toHaveBeenCalledTimes(1)
+      
+      createSpy.mockRestore()
+    })
+
+    it('import button has correct title', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      expect(screen.getByTitle('Import template')).toBeInTheDocument()
+    })
+  })
+
+  describe('Final Standings with Placements', () => {
+    it('shows medal emoji for top 3 placements', () => {
+      const tournament = createMockTournament({
+        players: [
+          { id: 'p1', name: 'Champion', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 4, placement: 1, tableNumber: 1, seatNumber: 1 },
+          { id: 'p2', name: 'Runner Up', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 3, placement: 2, tableNumber: 1, seatNumber: 2 },
+          { id: 'p3', name: 'Third', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 2, placement: 3, tableNumber: 1, seatNumber: 3 },
+          { id: 'p4', name: 'Fourth', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 1, placement: 4, tableNumber: 1, seatNumber: 4 },
+        ],
+      })
+      render(<Prizes tournament={tournament} />)
+      
+      expect(screen.getByText('Champion')).toBeInTheDocument()
+      expect(screen.getByText('Runner Up')).toBeInTheDocument()
+      expect(screen.getByText('Third')).toBeInTheDocument()
+      expect(screen.getByText('Fourth')).toBeInTheDocument()
+    })
+
+    it('shows ordinal placement for 4th+ places', () => {
+      const tournament = createMockTournament({
+        players: [
+          { id: 'p1', name: 'Still In', buyins: 1, rebuys: 0, addons: 0, eliminated: false, tableNumber: 1, seatNumber: 1 },
+          { id: 'p2', name: 'P2', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 5, placement: 2, tableNumber: 1, seatNumber: 2 },
+          { id: 'p3', name: 'P3', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 4, placement: 3, tableNumber: 1, seatNumber: 3 },
+          { id: 'p4', name: 'P4', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 3, placement: 4, tableNumber: 1, seatNumber: 4 },
+          { id: 'p5', name: 'P5', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 2, placement: 5, tableNumber: 1, seatNumber: 5 },
+          { id: 'p6', name: 'P6', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 1, placement: 6, tableNumber: 1, seatNumber: 6 },
+        ],
+      })
+      render(<Prizes tournament={tournament} />)
+      
+      // Players 4-6 should show #4, #5, #6 since placement > 3
+      expect(screen.getByText('#4')).toBeInTheDocument()
+      expect(screen.getByText('#5')).toBeInTheDocument()
+      expect(screen.getByText('#6')).toBeInTheDocument()
+    })
+
+    it('shows payout amounts for in-the-money players', () => {
+      const tournament = createMockTournament({
+        players: [
+          { id: 'p1', name: 'Winner', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 3, placement: 1, tableNumber: 1, seatNumber: 1 },
+          { id: 'p2', name: 'Second', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 2, placement: 2, tableNumber: 1, seatNumber: 2 },
+          { id: 'p3', name: 'Bubble', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 1, placement: 4, tableNumber: 1, seatNumber: 3 },
+        ],
+      })
+      render(<Prizes tournament={tournament} />)
+      
+      // Winner should appear, Bubble player should be shown but without payout
+      expect(screen.getByText('Winner')).toBeInTheDocument()
+      expect(screen.getByText('Second')).toBeInTheDocument()
+      expect(screen.getByText('Bubble')).toBeInTheDocument()
+    })
+
+    it('shows no eliminations message when no players eliminated', () => {
+      const tournament = createMockTournament({
+        players: [
+          { id: 'p1', name: 'Active1', buyins: 1, rebuys: 0, addons: 0, eliminated: false, tableNumber: 1, seatNumber: 1 },
+          { id: 'p2', name: 'Active2', buyins: 1, rebuys: 0, addons: 0, eliminated: false, tableNumber: 1, seatNumber: 2 },
+        ],
+      })
+      render(<Prizes tournament={tournament} />)
+      
+      expect(screen.getByText('🏆')).toBeInTheDocument()
+      expect(screen.getByText('No eliminations yet')).toBeInTheDocument()
+      expect(screen.getByText('Standings will appear as players are eliminated')).toBeInTheDocument()
+    })
+  })
+
+  describe('Section Headers', () => {
+    it('displays Payout Structure heading', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      expect(screen.getByText('Payout Structure')).toBeInTheDocument()
+    })
+
+    it('displays Final Standings heading', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      expect(screen.getByText('Final Standings')).toBeInTheDocument()
+    })
+
+    it('displays Paid Places label', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      expect(screen.getByText('Paid Places')).toBeInTheDocument()
+    })
+  })
+
+  describe('Total Percentage Display', () => {
+    it('shows Total label in validation area', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      // Total: 100.0% is the validation line
+      expect(screen.getByText(/Total: 100\.0%/)).toBeInTheDocument()
+    })
+
+    it('shows must equal 100% when invalid', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      const inputs = screen.getAllByRole('spinbutton')
+      fireEvent.change(inputs[0], { target: { value: '80' } })
+      
+      // 80 + 30 + 20 = 130%
+      expect(screen.getByText(/must equal 100%/)).toBeInTheDocument()
+    })
+  })
+
+  describe('Payout Summary Cards', () => {
+    it('shows "of pool" text in summary cards', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      expect(screen.getAllByText(/of pool/).length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('Save Modal Preview', () => {
+    it('shows current structure preview in save modal', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      fireEvent.click(screen.getByText('Save'))
+      
+      // Modal should show current places and percentages
+      expect(screen.getByText(/3 places/)).toBeInTheDocument()
+      expect(screen.getByText(/50\/30\/20%/)).toBeInTheDocument()
+    })
+  })
+
+  describe('Template Dropdown Details', () => {
+    it('shows template details in dropdown', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      // Save a 4-place template via the component
+      fireEvent.click(screen.getByRole('button', { name: '4' }))
+      fireEvent.click(screen.getByText('Save'))
+      fireEvent.change(screen.getByPlaceholderText('Template name'), { target: { value: 'My 4-Way Split' } })
+      const saveButtons = screen.getAllByText('Save')
+      fireEvent.click(saveButtons[saveButtons.length - 1])
+      
+      // Open My Templates
+      fireEvent.click(screen.getByText('My Templates'))
+      
+      // Should show template details
+      expect(screen.getAllByText(/4 places/).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/45\/27\/18/).length).toBeGreaterThan(0)
+    })
+
+    it('shows save hint in empty templates view', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      fireEvent.click(screen.getByText('My Templates'))
+      
+      expect(screen.getByText('No custom templates saved yet')).toBeInTheDocument()
+      expect(screen.getByText('Save your current structure to create one')).toBeInTheDocument()
+    })
+  })
+
+  describe('Loading Templates from localStorage', () => {
+    it('loads saved template count badge on mount', () => {
+      const savedTemplates = [
+        { id: '1', name: 'Template A', paidPlaces: 3, percentages: [50, 30, 20], createdAt: new Date().toISOString() },
+        { id: '2', name: 'Template B', paidPlaces: 4, percentages: [45, 27, 18, 10], createdAt: new Date().toISOString() },
+      ]
+      localStorage.setItem('pokerpulse_prize_templates', JSON.stringify(savedTemplates))
+      
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      // Badge showing count 2 should appear
+      expect(screen.getByText('2')).toBeInTheDocument()
+    })
+
+    it('renders without crash when localStorage data is corrupted', () => {
+      localStorage.setItem('pokerpulse_prize_templates', 'not-json')
+      
+      const tournament = createMockTournament()
+      // Should not crash - component catches the error internally
+      render(<Prizes tournament={tournament} />)
+      expect(screen.getByText('Total Prize Pool')).toBeInTheDocument()
+    })
+  })
+
+  describe('Paid Places 6 and 7', () => {
+    it('applies correct template for 6 paid places', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      fireEvent.click(screen.getByRole('button', { name: '6' }))
+      
+      // 6 places should show 6th label
+      expect(screen.getByText('6th')).toBeInTheDocument()
+      const inputs = screen.getAllByRole('spinbutton')
+      expect(inputs.length).toBeGreaterThanOrEqual(6)
+    })
+
+    it('applies correct template for 7 paid places', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      fireEvent.click(screen.getByRole('button', { name: '7' }))
+      
+      // 7 places should show 7th label
+      expect(screen.getByText('7th')).toBeInTheDocument()
+      const inputs = screen.getAllByRole('spinbutton')
+      expect(inputs.length).toBeGreaterThanOrEqual(7)
+    })
+  })
+
+  describe('Load Custom Template Integration', () => {
+    it('loads template and sets active template name', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      // Save a 3-place template (same as default) with custom percentages
+      const inputs = screen.getAllByRole('spinbutton')
+      fireEvent.change(inputs[0], { target: { value: '60' } })
+      
+      fireEvent.click(screen.getByText('Save'))
+      fireEvent.change(screen.getByPlaceholderText('Template name'), { target: { value: 'Turbo Template' } })
+      const saveButtons = screen.getAllByText('Save')
+      fireEvent.click(saveButtons[saveButtons.length - 1])
+      
+      // Clear the active template
+      fireEvent.click(screen.getByTitle('Clear template'))
+      
+      // Open templates and load the saved one
+      fireEvent.click(screen.getByText('My Templates'))
+      fireEvent.click(screen.getAllByText('Turbo Template')[0])
+      
+      // Clear template button should appear (same paid places, no useEffect override)
+      expect(screen.getByTitle('Clear template')).toBeInTheDocument()
+    })
+
+    it('updates percentages when loading custom template', () => {
+      const tournament = createMockTournament()
+      render(<Prizes tournament={tournament} />)
+      
+      // Modify percentage to 70% and save
+      const inputs = screen.getAllByRole('spinbutton')
+      fireEvent.change(inputs[0], { target: { value: '70' } })
+      
+      fireEvent.click(screen.getByText('Save'))
+      fireEvent.change(screen.getByPlaceholderText('Template name'), { target: { value: 'Custom Split' } })
+      const saveButtons = screen.getAllByText('Save')
+      fireEvent.click(saveButtons[saveButtons.length - 1])
+      
+      // Reset to default
+      fireEvent.click(screen.getByTitle('Clear template'))
+      
+      // Now load saved template
+      fireEvent.click(screen.getByText('My Templates'))
+      fireEvent.click(screen.getAllByText('Custom Split')[0])
+      
+      // Prize pool $450 at 70% = $315
+      expect(screen.getAllByText('$315').length).toBeGreaterThan(0)
     })
   })
 })

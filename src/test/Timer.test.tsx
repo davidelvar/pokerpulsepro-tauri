@@ -30,13 +30,28 @@ vi.mock('react-i18next', () => ({
         'timer.playersRemaining': 'Players Remaining',
         'timer.finalPrizePool': 'Final Prize Pool',
         'timer.finalBlinds': 'Final Blinds',
+        'timer.finalLevel': 'Final Level',
+        'timer.addFiveMin': 'Add 5 Min',
+        'timer.saveToHistory': 'Save to History',
+        'timer.resetTournament': 'Reset Tournament',
+        'timer.tournamentWinner': 'Tournament Winner',
+        'timer.enterWinnerName': 'Enter winner name',
+        'timer.winnerPlaceholder': 'Winner name',
+        'timer.saveTournament': 'Save Tournament',
+        'timer.allLevelsFinished': 'All levels finished',
+        'timer.previousLevel': 'Previous Level',
+        'timer.smallBlind': 'Small Blind',
+        'timer.bigBlind': 'Big Blind',
         'modal.submit': 'Submit',
         'modal.cancel': 'Cancel',
       }
-      if (options?.count !== undefined) {
-        return translations[key]?.replace('{{count}}', options.count) || key
+      let result = translations[key] || key
+      if (options) {
+        Object.entries(options).forEach(([k, v]) => {
+          result = result.replace(`{{${k}}}`, String(v))
+        })
       }
-      return translations[key] || key
+      return result
     },
   }),
 }))
@@ -351,5 +366,349 @@ describe('Timer Component', () => {
     expect(screen.getByText('Players')).toBeInTheDocument()
     expect(screen.getByText('Prize Pool')).toBeInTheDocument()
     expect(screen.getByText('Average Stack')).toBeInTheDocument()
+  })
+
+  it('calls prevLevel when previous button clicked', () => {
+    render(
+      <Timer
+        tournament={baseTournament}
+        toggleTimer={mockToggleTimer}
+        nextLevel={mockNextLevel}
+        prevLevel={mockPrevLevel}
+        addTime={mockAddTime}
+      />
+    )
+    
+    const prevButton = screen.getByTitle('Previous Level')
+    fireEvent.click(prevButton)
+    
+    expect(mockPrevLevel).toHaveBeenCalled()
+  })
+
+  it('disables next level button on final level', () => {
+    const finalLevelTournament = {
+      ...baseTournament,
+      current_level: 2,
+      time_remaining_seconds: 600,
+    }
+    
+    render(
+      <Timer
+        tournament={finalLevelTournament}
+        toggleTimer={mockToggleTimer}
+        nextLevel={mockNextLevel}
+        prevLevel={mockPrevLevel}
+        addTime={mockAddTime}
+      />
+    )
+    
+    const nextButton = screen.getByTitle('Next Level')
+    expect(nextButton).toBeDisabled()
+  })
+
+  it('shows level number badge for normal levels', () => {
+    render(
+      <Timer
+        tournament={baseTournament}
+        toggleTimer={mockToggleTimer}
+        nextLevel={mockNextLevel}
+        prevLevel={mockPrevLevel}
+        addTime={mockAddTime}
+      />
+    )
+    
+    // Level 1/3 text
+    expect(screen.getByText(/Level/)).toBeInTheDocument()
+  })
+
+  it('shows final level badge on last level', () => {
+    const finalTournament = {
+      ...baseTournament,
+      blind_structure: [baseTournament.blind_structure[0]],
+      current_level: 0,
+    }
+    
+    render(
+      <Timer
+        tournament={finalTournament}
+        toggleTimer={mockToggleTimer}
+        nextLevel={mockNextLevel}
+        prevLevel={mockPrevLevel}
+        addTime={mockAddTime}
+      />
+    )
+    
+    // Should contain Final Level text
+    expect(screen.getByText(/Final Level/)).toBeInTheDocument()
+  })
+
+  it('shows next level preview with blinds', () => {
+    render(
+      <Timer
+        tournament={baseTournament}
+        toggleTimer={mockToggleTimer}
+        nextLevel={mockNextLevel}
+        prevLevel={mockPrevLevel}
+        addTime={mockAddTime}
+      />
+    )
+    
+    // Next level is 50/100
+    expect(screen.getByText('Next Level')).toBeInTheDocument()
+    expect(screen.getByText('100')).toBeInTheDocument()
+  })
+
+  it('shows break preview in next level when next is a break', () => {
+    const beforeBreakTournament = { ...baseTournament, current_level: 1 }
+    
+    render(
+      <Timer
+        tournament={beforeBreakTournament}
+        toggleTimer={mockToggleTimer}
+        nextLevel={mockNextLevel}
+        prevLevel={mockPrevLevel}
+        addTime={mockAddTime}
+      />
+    )
+    
+    // Next level is a break
+    const breakTexts = screen.getAllByText(/BREAK/)
+    expect(breakTexts.length).toBeGreaterThanOrEqual(1)
+  })
+
+  describe('Tournament Complete State', () => {
+    const completeTournament = {
+      ...baseTournament,
+      current_level: 2,
+      time_remaining_seconds: 0,
+    }
+
+    it('shows tournament complete text', () => {
+      render(
+        <Timer
+          tournament={completeTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+          onCompleteTournament={mockCompleteTournament}
+        />
+      )
+      
+      expect(screen.getByText('Tournament Complete!')).toBeInTheDocument()
+    })
+
+    it('shows go back level button when complete', () => {
+      render(
+        <Timer
+          tournament={completeTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+        />
+      )
+      
+      const goBackButton = screen.getByText(/Go Back/)
+      fireEvent.click(goBackButton)
+      expect(mockPrevLevel).toHaveBeenCalled()
+    })
+
+    it('shows add 5 minutes button when complete', () => {
+      render(
+        <Timer
+          tournament={completeTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+        />
+      )
+      
+      const addTimeButton = screen.getByText(/Add 5 Min/)
+      fireEvent.click(addTimeButton)
+      expect(mockAddTime).toHaveBeenCalledWith(300)
+    })
+
+    it('shows save to history button when onCompleteTournament is provided', () => {
+      render(
+        <Timer
+          tournament={completeTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+          onCompleteTournament={mockCompleteTournament}
+        />
+      )
+      
+      expect(screen.getByText(/Save/i)).toBeInTheDocument()
+    })
+
+    it('does not show save button when onCompleteTournament is not provided', () => {
+      render(
+        <Timer
+          tournament={completeTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+        />
+      )
+      
+      expect(screen.queryByText(/Save/i)).not.toBeInTheDocument()
+    })
+
+    it('opens winner prompt when save button clicked', () => {
+      render(
+        <Timer
+          tournament={completeTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+          onCompleteTournament={mockCompleteTournament}
+        />
+      )
+      
+      const saveButton = screen.getByText(/Save/i)
+      fireEvent.click(saveButton)
+      
+      // Winner prompt modal should appear
+      expect(screen.getByText('Tournament Winner')).toBeInTheDocument()
+    })
+
+    it('shows final stats on complete screen', () => {
+      render(
+        <Timer
+          tournament={completeTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+        />
+      )
+      
+      expect(screen.getByText(/Players Remaining/)).toBeInTheDocument()
+      expect(screen.getByText(/Final Prize Pool/)).toBeInTheDocument()
+      expect(screen.getByText(/Final Blinds/)).toBeInTheDocument()
+    })
+
+    it('shows reset button after saving', () => {
+      render(
+        <Timer
+          tournament={completeTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+          onCompleteTournament={mockCompleteTournament}
+          onReset={mockReset}
+        />
+      )
+      
+      // Click save to open winner prompt
+      const saveButton = screen.getByText(/Save/i)
+      fireEvent.click(saveButton)
+      
+      // Submit a winner name
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'Alice' } })
+      const submitBtn = screen.getByText('Save Tournament')
+      fireEvent.click(submitBtn)
+      
+      expect(mockCompleteTournament).toHaveBeenCalledWith('Alice')
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('handles time at exactly 60 seconds (boundary of low time)', () => {
+      const boundaryTournament = { ...baseTournament, time_remaining_seconds: 60 }
+      
+      render(
+        <Timer
+          tournament={boundaryTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+        />
+      )
+      
+      // 60 seconds is the boundary, should show warning
+      const redTimer = document.querySelector('.text-red-500')
+      expect(redTimer).toBeInTheDocument()
+    })
+
+    it('handles zero time remaining (not complete if not last level)', () => {
+      const zeroTimeTournament = {
+        ...baseTournament,
+        current_level: 0,
+        time_remaining_seconds: 0,
+      }
+      
+      render(
+        <Timer
+          tournament={zeroTimeTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+        />
+      )
+      
+      // Not final level, so should still show normal timer
+      expect(screen.getByText('00:00')).toBeInTheDocument()
+      expect(screen.queryByText('Tournament Complete!')).not.toBeInTheDocument()
+    })
+
+    it('handles tournament with no players', () => {
+      const emptyTournament = { ...baseTournament, players: [] }
+      
+      render(
+        <Timer
+          tournament={emptyTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+        />
+      )
+      
+      // Check player count shows 0/0
+      const playerCounts = screen.getAllByText('0')
+      expect(playerCounts.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('identifies likely winner when only 1 player remains', () => {
+      const onePlayerTournament = {
+        ...baseTournament,
+        current_level: 2,
+        time_remaining_seconds: 0,
+        players: [
+          { id: '1', name: 'Alice', buyins: 1, rebuys: 0, addons: 0, eliminated: false, placement: null, tableNumber: 1, seatNumber: 1 },
+          { id: '2', name: 'Bob', buyins: 1, rebuys: 0, addons: 0, eliminated: true, placement: 2, tableNumber: null, seatNumber: null },
+        ],
+      }
+      
+      render(
+        <Timer
+          tournament={onePlayerTournament}
+          toggleTimer={mockToggleTimer}
+          nextLevel={mockNextLevel}
+          prevLevel={mockPrevLevel}
+          addTime={mockAddTime}
+          onCompleteTournament={mockCompleteTournament}
+        />
+      )
+      
+      // Open winner prompt - should pre-fill with Alice
+      const saveButton = screen.getByText(/Save/i)
+      fireEvent.click(saveButton)
+      
+      // Alice's name should be the default value
+      const input = screen.getByRole('textbox') as HTMLInputElement
+      expect(input.value).toBe('Alice')
+    })
   })
 })

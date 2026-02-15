@@ -84,4 +84,73 @@ describe('Navigation Component', () => {
     const playersButton = screen.getByText('Players').closest('button')
     expect(playersButton).toHaveAttribute('data-onboarding', 'players')
   })
+
+  it('non-active tabs do not have active styling', () => {
+    render(<Navigation {...defaultProps} activeTab="timer" />)
+    
+    const blindsButton = screen.getByText('Blinds').closest('button')
+    expect(blindsButton).not.toHaveClass('bg-accent/20')
+    expect(blindsButton).toHaveClass('text-themed-muted')
+  })
+
+  it('renders exactly 6 tab buttons', () => {
+    render(<Navigation {...defaultProps} />)
+    
+    const buttons = document.querySelectorAll('nav button')
+    expect(buttons.length).toBe(6)
+  })
+
+  it('each tab has an icon svg', () => {
+    render(<Navigation {...defaultProps} />)
+    
+    const buttons = document.querySelectorAll('nav button')
+    buttons.forEach(button => {
+      const svg = button.querySelector('svg')
+      expect(svg).toBeInTheDocument()
+    })
+  })
+
+  it('each tab has a text label', () => {
+    render(<Navigation {...defaultProps} />)
+    
+    const labels = ['Timer', 'Players', 'Blinds', 'Prizes', 'Settings', 'Help']
+    labels.forEach(label => {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    })
+  })
+
+  it('has data-onboarding attributes for all tabs', () => {
+    render(<Navigation {...defaultProps} />)
+    
+    const tabIds = ['timer', 'players', 'blinds', 'prizes', 'settings', 'help']
+    tabIds.forEach(tabId => {
+      const button = document.querySelector(`[data-onboarding="${tabId}"]`)
+      expect(button).toBeInTheDocument()
+    })
+  })
+
+  it('highlights settings tab when active', () => {
+    render(<Navigation {...defaultProps} activeTab="settings" />)
+    
+    const settingsButton = screen.getByText('Settings').closest('button')
+    expect(settingsButton).toHaveClass('bg-accent/20')
+    expect(settingsButton).toHaveClass('text-accent')
+  })
+
+  it('renders nav element with correct structure', () => {
+    render(<Navigation {...defaultProps} />)
+    
+    const nav = document.querySelector('nav')
+    expect(nav).toBeInTheDocument()
+    expect(nav).toHaveClass('w-20')
+    expect(nav).toHaveClass('border-r')
+  })
+
+  it('only one tab is highlighted at a time', () => {
+    render(<Navigation {...defaultProps} activeTab="blinds" />)
+    
+    const buttons = document.querySelectorAll('nav button')
+    const activeButtons = Array.from(buttons).filter(btn => btn.classList.contains('text-accent'))
+    expect(activeButtons.length).toBe(1)
+  })
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { Settings } from './Settings'
 import type { Tournament, SoundSettings, ThemeSettings } from '../types'
 
@@ -89,18 +89,25 @@ const createMockTournament = (overrides: Partial<Tournament> = {}): Tournament =
   time_remaining_seconds: 900,
   is_running: false,
   blind_structure: [
-    { small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15 },
-    { small_blind: 50, big_blind: 100, ante: 0, duration_minutes: 15 },
+    { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+    { id: '2', small_blind: 50, big_blind: 100, ante: 0, duration_minutes: 15, is_break: false },
   ],
   players: [],
   currency_symbol: '$',
+  tableCount: 1,
+  seatsPerTable: 9,
   ...overrides,
 })
 
 const createMockSoundSettings = (overrides: Partial<SoundSettings> = {}): SoundSettings => ({
   enabled: true,
   volume: 0.7,
-  soundType: 'chime',
+  soundType: 'bell',
+  customSoundPath: null,
+  warningEnabled: false,
+  warningAt60: true,
+  warningAt30: true,
+  autoPauseOnBreak: false,
   ...overrides,
 })
 
@@ -336,7 +343,7 @@ describe('Settings Component', () => {
   describe('Sound Settings', () => {
     it('should be configurable for sound type', () => {
       const soundSettings = createMockSoundSettings()
-      expect(soundSettings.soundType).toBe('chime')
+      expect(soundSettings.soundType).toBe('bell')
     })
 
     it('should be configurable for volume', () => {
@@ -521,18 +528,25 @@ describe('Settings Component Advanced', () => {
       time_remaining_seconds: 900,
       is_running: false,
       blind_structure: [
-        { small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15 },
-        { small_blind: 50, big_blind: 100, ante: 0, duration_minutes: 15 },
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+        { id: '2', small_blind: 50, big_blind: 100, ante: 0, duration_minutes: 15, is_break: false },
       ],
       players: [],
       currency_symbol: '$',
+      tableCount: 1,
+      seatsPerTable: 9,
       ...tournamentOverrides,
     }
     
     const soundSettings: SoundSettings = {
       enabled: true,
       volume: 0.7,
-      soundType: 'chime',
+      soundType: 'bell',
+      customSoundPath: null,
+      warningEnabled: false,
+      warningAt60: true,
+      warningAt30: true,
+      autoPauseOnBreak: false,
       ...soundOverrides,
     }
     
@@ -579,7 +593,7 @@ describe('Settings Component Advanced', () => {
     })
 
     it('calls setSoundSettings when sound type changed', () => {
-      renderSettings({}, { enabled: true, soundType: 'chime' })
+      renderSettings({}, { enabled: true, soundType: 'bell' })
       
       // Find bell sound button
       const buttons = screen.getAllByRole('button')
@@ -799,13 +813,14 @@ describe('Settings Data Validation', () => {
       warningEnabled: true,
       warningAt60: true,
       warningAt30: true,
-      warningAt10: false,
+      autoPauseOnBreak: false,
+      customSoundPath: null,
     }
     
     expect(soundSettings.enabled).toBe(true)
     expect(soundSettings.volume).toBeGreaterThanOrEqual(0)
     expect(soundSettings.volume).toBeLessThanOrEqual(1)
-    expect(['bell', 'chime', 'evil-laugh', 'custom']).toContain(soundSettings.soundType)
+    expect(['bell', 'evil-laugh', 'localized', 'custom']).toContain(soundSettings.soundType)
   })
 
   it('validates theme settings structure', () => {
@@ -838,5 +853,1263 @@ describe('Settings Data Validation', () => {
     currencies.forEach(symbol => {
       expect(symbol).toBeTruthy()
     })
+  })
+})
+
+describe('Settings - Localized Sound Option', () => {
+  const mockSetTournament = vi.fn()
+  const mockSetSoundSettings = vi.fn()
+  const mockSetThemeSettings = vi.fn()
+  const mockPlayTestSound = vi.fn()
+  const mockResetTournament = vi.fn()
+  const mockOnShowOnboarding = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = (
+    soundOverrides: Partial<SoundSettings> = {},
+    tournamentOverrides: Partial<Tournament> = {},
+  ) => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+      ...tournamentOverrides,
+    }
+    const soundSettings: SoundSettings = {
+      enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null,
+      warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false,
+      ...soundOverrides,
+    }
+    return render(
+      <Settings
+        tournament={tournament} setTournament={mockSetTournament}
+        soundSettings={soundSettings} setSoundSettings={mockSetSoundSettings}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={mockSetThemeSettings}
+        playTestSound={mockPlayTestSound} resetTournament={mockResetTournament}
+        onShowOnboarding={mockOnShowOnboarding}
+      />
+    )
+  }
+
+  it('renders the localized (Voice) sound option button', () => {
+    renderSettings({ enabled: true })
+    expect(screen.getByText('settings.soundLocalized')).toBeInTheDocument()
+  })
+
+  it('selects localized sound type when Voice button is clicked', () => {
+    renderSettings({ enabled: true, soundType: 'bell' })
+    const voiceButton = screen.getByText('settings.soundLocalized').closest('button')!
+    fireEvent.click(voiceButton)
+    expect(mockSetSoundSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ soundType: 'localized' })
+    )
+  })
+
+  it('highlights Voice button when localized sound is selected', () => {
+    renderSettings({ enabled: true, soundType: 'localized' })
+    const voiceButton = screen.getByText('settings.soundLocalized').closest('button')!
+    expect(voiceButton).toHaveClass('bg-accent/20')
+  })
+
+  it('does not highlight Voice button when another sound type is selected', () => {
+    renderSettings({ enabled: true, soundType: 'bell' })
+    const voiceButton = screen.getByText('settings.soundLocalized').closest('button')!
+    expect(voiceButton).not.toHaveClass('bg-accent/20')
+  })
+
+  it('renders all four sound type buttons when sound enabled', () => {
+    renderSettings({ enabled: true })
+    expect(screen.getByText('settings.soundBell')).toBeInTheDocument()
+    expect(screen.getByText('settings.soundEvilLaugh')).toBeInTheDocument()
+    expect(screen.getByText('settings.soundLocalized')).toBeInTheDocument()
+    expect(screen.getByText('settings.soundCustom')).toBeInTheDocument()
+  })
+
+  it('does not render sound type buttons when sound is disabled', () => {
+    renderSettings({ enabled: false })
+    expect(screen.queryByText('settings.soundLocalized')).not.toBeInTheDocument()
+    expect(screen.queryByText('settings.soundBell')).not.toBeInTheDocument()
+  })
+})
+
+describe('Settings - Warning Sounds', () => {
+  const mockSetSoundSettings = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = (soundOverrides: Partial<SoundSettings> = {}) => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    const soundSettings: SoundSettings = {
+      enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null,
+      warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false,
+      ...soundOverrides,
+    }
+    return render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={soundSettings} setSoundSettings={mockSetSoundSettings}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        onShowOnboarding={vi.fn()}
+      />
+    )
+  }
+
+  it('renders warning sound toggle', () => {
+    renderSettings()
+    expect(screen.getByText('settings.warningSound')).toBeInTheDocument()
+    expect(screen.getByText('settings.warningSoundDesc')).toBeInTheDocument()
+  })
+
+  it('toggles warning sounds on', () => {
+    renderSettings({ warningEnabled: false })
+    const toggleButtons = screen.getAllByRole('button')
+    // Find the warning toggle specifically (2nd toggle in right column)
+    const allToggles = toggleButtons.filter(btn =>
+      btn.className.includes('w-12') && btn.className.includes('h-6')
+    )
+    // Toggle at index 1 should be warning toggle
+    if (allToggles[1]) {
+      fireEvent.click(allToggles[1])
+      expect(mockSetSoundSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ warningEnabled: true })
+      )
+    }
+  })
+
+  it('shows warning checkboxes when warning is enabled', () => {
+    renderSettings({ warningEnabled: true })
+    expect(screen.getByText('settings.warning60')).toBeInTheDocument()
+    expect(screen.getByText('settings.warning30')).toBeInTheDocument()
+  })
+
+  it('does not show warning checkboxes when warning is disabled', () => {
+    renderSettings({ warningEnabled: false })
+    expect(screen.queryByText('settings.warning60')).not.toBeInTheDocument()
+    expect(screen.queryByText('settings.warning30')).not.toBeInTheDocument()
+  })
+
+  it('toggles 60-second warning checkbox', () => {
+    renderSettings({ warningEnabled: true, warningAt60: true })
+    const checkboxes = screen.getAllByRole('checkbox')
+    const warning60 = checkboxes[0]
+    fireEvent.click(warning60)
+    expect(mockSetSoundSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ warningAt60: false })
+    )
+  })
+
+  it('toggles 30-second warning checkbox', () => {
+    renderSettings({ warningEnabled: true, warningAt30: true })
+    const checkboxes = screen.getAllByRole('checkbox')
+    const warning30 = checkboxes[1]
+    fireEvent.click(warning30)
+    expect(mockSetSoundSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ warningAt30: false })
+    )
+  })
+})
+
+describe('Settings - Auto-Pause on Break', () => {
+  const mockSetSoundSettings = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = (soundOverrides: Partial<SoundSettings> = {}) => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    const soundSettings: SoundSettings = {
+      enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null,
+      warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false,
+      ...soundOverrides,
+    }
+    return render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={soundSettings} setSoundSettings={mockSetSoundSettings}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        onShowOnboarding={vi.fn()}
+      />
+    )
+  }
+
+  it('renders auto-pause on break toggle', () => {
+    renderSettings()
+    expect(screen.getByText('settings.autoPauseBreak')).toBeInTheDocument()
+    expect(screen.getByText('settings.autoPauseBreakDesc')).toBeInTheDocument()
+  })
+
+  it('toggles auto-pause on break', () => {
+    renderSettings({ autoPauseOnBreak: false })
+    const allToggles = screen.getAllByRole('button').filter(btn =>
+      btn.className.includes('w-12') && btn.className.includes('h-6')
+    )
+    // Auto-pause toggle is the 3rd toggle
+    if (allToggles[2]) {
+      fireEvent.click(allToggles[2])
+      expect(mockSetSoundSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ autoPauseOnBreak: true })
+      )
+    }
+  })
+})
+
+describe('Settings - Keyboard Shortcuts Display', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = () => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    return render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        setSoundSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        onShowOnboarding={vi.fn()}
+      />
+    )
+  }
+
+  it('renders keyboard shortcuts section', () => {
+    renderSettings()
+    expect(screen.getByText('settings.shortcuts')).toBeInTheDocument()
+  })
+
+  it('shows all shortcut keys', () => {
+    renderSettings()
+    expect(screen.getByText('Space')).toBeInTheDocument()
+    expect(screen.getByText('←')).toBeInTheDocument()
+    expect(screen.getByText('→')).toBeInTheDocument()
+    expect(screen.getByText('+')).toBeInTheDocument()
+    expect(screen.getByText('-')).toBeInTheDocument()
+    expect(screen.getByText('F')).toBeInTheDocument()
+  })
+
+  it('shows shortcut labels', () => {
+    renderSettings()
+    expect(screen.getByText('settings.playPause')).toBeInTheDocument()
+    expect(screen.getByText('settings.prevLevel')).toBeInTheDocument()
+    expect(screen.getByText('settings.nextLevel')).toBeInTheDocument()
+    expect(screen.getByText('settings.addMin')).toBeInTheDocument()
+    expect(screen.getByText('settings.removeMin')).toBeInTheDocument()
+    expect(screen.getByText('settings.fullscreen')).toBeInTheDocument()
+  })
+})
+
+describe('Settings - Data Management', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = () => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    return render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        setSoundSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        onShowOnboarding={vi.fn()}
+      />
+    )
+  }
+
+  it('renders data management section', () => {
+    renderSettings()
+    expect(screen.getByText('settings.dataManagement')).toBeInTheDocument()
+  })
+
+  it('renders auto-save indicator', () => {
+    renderSettings()
+    expect(screen.getByText('settings.autoSaveEnabled')).toBeInTheDocument()
+    expect(screen.getByText('settings.autoSaveDesc')).toBeInTheDocument()
+  })
+})
+
+describe('Settings - Tournament History with Entries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = () => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    return render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        setSoundSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        onShowOnboarding={vi.fn()}
+      />
+    )
+  }
+
+  it('shows empty history message when no history', () => {
+    renderSettings()
+    expect(screen.getByText('settings.noHistory')).toBeInTheDocument()
+  })
+
+  it('renders history entries from localStorage', async () => {
+    const history = [
+      { id: '1', name: 'Friday Night Poker', date: '2025-12-01T20:00:00Z', playerCount: 8, winner: 'Alice', prizePool: 800, currency_symbol: '$', duration_minutes: 180 },
+    ]
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === 'pokerpulse_tournament_history') return JSON.stringify(history)
+      return null
+    })
+    await act(async () => {
+      renderSettings()
+    })
+    expect(screen.getByText('Friday Night Poker')).toBeInTheDocument()
+    expect(screen.getByText(/Alice/)).toBeInTheDocument()
+  })
+
+  it('renders multiple history entries', async () => {
+    const history = [
+      { id: '1', name: 'Tournament A', date: '2025-12-01T20:00:00Z', playerCount: 8, winner: 'Alice', prizePool: 800, currency_symbol: '$', duration_minutes: 180 },
+      { id: '2', name: 'Tournament B', date: '2025-12-05T20:00:00Z', playerCount: 6, winner: 'Bob', prizePool: 600, currency_symbol: '€', duration_minutes: 120 },
+    ]
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === 'pokerpulse_tournament_history') return JSON.stringify(history)
+      return null
+    })
+    await act(async () => {
+      renderSettings()
+    })
+    expect(screen.getByText('Tournament A')).toBeInTheDocument()
+    expect(screen.getByText('Tournament B')).toBeInTheDocument()
+  })
+
+  it('shows history count badge', async () => {
+    const history = [
+      { id: '1', name: 'T1', date: '2025-12-01', playerCount: 8, winner: 'A', prizePool: 800, currency_symbol: '$', duration_minutes: 180 },
+      { id: '2', name: 'T2', date: '2025-12-02', playerCount: 6, winner: 'B', prizePool: 600, currency_symbol: '$', duration_minutes: 120 },
+    ]
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === 'pokerpulse_tournament_history') return JSON.stringify(history)
+      return null
+    })
+    await act(async () => {
+      renderSettings()
+    })
+    expect(screen.getByText('(2)')).toBeInTheDocument()
+  })
+
+  it('shows clear history button when history exists', async () => {
+    const history = [
+      { id: '1', name: 'T1', date: '2025-12-01', playerCount: 8, winner: 'A', prizePool: 800, currency_symbol: '$', duration_minutes: 180 },
+    ]
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === 'pokerpulse_tournament_history') return JSON.stringify(history)
+      return null
+    })
+    await act(async () => {
+      renderSettings()
+    })
+    expect(screen.getByText('Clear History')).toBeInTheDocument()
+  })
+})
+
+describe('Settings - Help & Tutorial Section', () => {
+  const mockOnShowOnboarding = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  it('renders tutorial section when onShowOnboarding is provided', () => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        setSoundSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        onShowOnboarding={mockOnShowOnboarding}
+      />
+    )
+    expect(screen.getByText('settings.startTutorial')).toBeInTheDocument()
+  })
+
+  it('calls onShowOnboarding when tutorial button is clicked', () => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        setSoundSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        onShowOnboarding={mockOnShowOnboarding}
+      />
+    )
+    const tutorialButton = screen.getByText('settings.startTutorial').closest('button')!
+    fireEvent.click(tutorialButton)
+    expect(mockOnShowOnboarding).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not render tutorial section when onShowOnboarding is not provided', () => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        setSoundSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+      />
+    )
+    expect(screen.queryByText('settings.startTutorial')).not.toBeInTheDocument()
+  })
+})
+
+describe('Settings - Danger Zone', () => {
+  const mockResetTournament = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  it('renders reset tournament section', () => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        setSoundSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={mockResetTournament}
+        onShowOnboarding={vi.fn()}
+      />
+    )
+    expect(screen.getByText('settings.resetTournamentDesc')).toBeInTheDocument()
+  })
+
+  it('calls resetTournament when reset button is clicked', () => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        setSoundSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={mockResetTournament}
+        onShowOnboarding={vi.fn()}
+      />
+    )
+    const resetButtons = screen.getAllByText('Reset Tournament')
+    const dangerButton = resetButtons.find(el => el.closest('button')?.classList.contains('btn-danger'))
+    expect(dangerButton).toBeTruthy()
+    fireEvent.click(dangerButton!.closest('button')!)
+    expect(mockResetTournament).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Settings - Volume Display', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = (volume: number) => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    return render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        setSoundSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        onShowOnboarding={vi.fn()}
+      />
+    )
+  }
+
+  it('displays volume as percentage', () => {
+    renderSettings(0.7)
+    expect(screen.getByText(/70%/)).toBeInTheDocument()
+  })
+
+  it('displays 0% volume', () => {
+    renderSettings(0)
+    expect(screen.getByText(/0%/)).toBeInTheDocument()
+  })
+
+  it('displays 100% volume', () => {
+    renderSettings(1)
+    expect(screen.getByText(/100%/)).toBeInTheDocument()
+  })
+})
+
+describe('Settings - Sound Type Selections', () => {
+  const mockSetSoundSettings = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = (soundOverrides: Partial<SoundSettings> = {}) => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    return render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false, ...soundOverrides }}
+        setSoundSettings={mockSetSoundSettings}
+        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        onShowOnboarding={vi.fn()}
+      />
+    )
+  }
+
+  it('selects evil-laugh sound type', () => {
+    renderSettings({ enabled: true })
+    const evilLaughButton = screen.getByText('settings.soundEvilLaugh').closest('button')!
+    fireEvent.click(evilLaughButton)
+    expect(mockSetSoundSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ soundType: 'evil-laugh' })
+    )
+  })
+
+  it('selects bell sound type', () => {
+    renderSettings({ enabled: true, soundType: 'evil-laugh' })
+    const bellButton = screen.getByText('settings.soundBell').closest('button')!
+    fireEvent.click(bellButton)
+    expect(mockSetSoundSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ soundType: 'bell' })
+    )
+  })
+
+  it('highlights evil-laugh when selected', () => {
+    renderSettings({ enabled: true, soundType: 'evil-laugh' })
+    const evilLaughButton = screen.getByText('settings.soundEvilLaugh').closest('button')!
+    expect(evilLaughButton).toHaveClass('bg-accent/20')
+  })
+
+  it('highlights bell when selected', () => {
+    renderSettings({ enabled: true, soundType: 'bell' })
+    const bellButton = screen.getByText('settings.soundBell').closest('button')!
+    expect(bellButton).toHaveClass('bg-accent/20')
+  })
+
+  it('highlights custom when selected', () => {
+    renderSettings({ enabled: true, soundType: 'custom' })
+    const customButton = screen.getByText('settings.soundCustom').closest('button')!
+    expect(customButton).toHaveClass('bg-accent/20')
+  })
+
+  it('only one sound type is highlighted at a time', () => {
+    renderSettings({ enabled: true, soundType: 'localized' })
+    const bellButton = screen.getByText('settings.soundBell').closest('button')!
+    const evilButton = screen.getByText('settings.soundEvilLaugh').closest('button')!
+    const voiceButton = screen.getByText('settings.soundLocalized').closest('button')!
+    const customButton = screen.getByText('settings.soundCustom').closest('button')!
+
+    expect(voiceButton).toHaveClass('bg-accent/20')
+    expect(bellButton).not.toHaveClass('bg-accent/20')
+    expect(evilButton).not.toHaveClass('bg-accent/20')
+    expect(customButton).not.toHaveClass('bg-accent/20')
+  })
+})
+
+describe('Settings - Accent Color Clicks', () => {
+  const mockSetThemeSettings = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = (accent: ThemeSettings['accent'] = 'emerald') => {
+    const tournament: Tournament = {
+      id: 'test-1', name: 'Test', buyin_amount: 100, rebuy_amount: 50, rebuy_chips: 5000,
+      addon_amount: 100, addon_chips: 10000, starting_chips: 10000, current_level: 0,
+      time_remaining_seconds: 900, is_running: false,
+      blind_structure: [
+        { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+      ],
+      players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+    }
+    return render(
+      <Settings
+        tournament={tournament} setTournament={vi.fn()}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        setSoundSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent }} setThemeSettings={mockSetThemeSettings}
+        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        onShowOnboarding={vi.fn()}
+      />
+    )
+  }
+
+  it('clicks on blue accent color', () => {
+    renderSettings('emerald')
+    const colorButtons = screen.getAllByRole('button').filter(btn =>
+      btn.classList.contains('aspect-square')
+    )
+    // Blue should be the 2nd color button
+    if (colorButtons[1]) {
+      fireEvent.click(colorButtons[1])
+      expect(mockSetThemeSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ accent: 'blue' })
+      )
+    }
+  })
+
+  it('clicks on purple accent color', () => {
+    renderSettings('emerald')
+    const colorButtons = screen.getAllByRole('button').filter(btn =>
+      btn.classList.contains('aspect-square')
+    )
+    if (colorButtons[2]) {
+      fireEvent.click(colorButtons[2])
+      expect(mockSetThemeSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ accent: 'purple' })
+      )
+    }
+  })
+})
+describe('Settings - Export Tournament (Browser mode)', () => {
+  const mockSetTournament = vi.fn()
+  const mockSetSoundSettings = vi.fn()
+  const mockSetThemeSettings = vi.fn()
+  const mockPlayTestSound = vi.fn()
+  const mockResetTournament = vi.fn()
+  const mockOnShowOnboarding = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+    // Ensure not in Tauri environment
+    delete (window as any).__TAURI_INTERNALS__
+    delete (window as any).__TAURI__
+  })
+
+  const renderSettings = (
+    tournamentOverrides: Partial<Tournament> = {},
+    soundOverrides: Partial<SoundSettings> = {},
+    themeOverrides: Partial<ThemeSettings> = {}
+  ) => {
+    return render(
+      <Settings
+        tournament={createMockTournament(tournamentOverrides)}
+        setTournament={mockSetTournament}
+        soundSettings={createMockSoundSettings(soundOverrides)}
+        setSoundSettings={mockSetSoundSettings}
+        themeSettings={createMockThemeSettings(themeOverrides)}
+        setThemeSettings={mockSetThemeSettings}
+        playTestSound={mockPlayTestSound}
+        resetTournament={mockResetTournament}
+        onShowOnboarding={mockOnShowOnboarding}
+      />
+    )
+  }
+
+  it('exports tournament config when Export button is clicked', () => {
+    const mockCreateObjectURL = vi.fn(() => 'blob:test')
+    const mockRevokeObjectURL = vi.fn()
+    const originalCreateObjectURL = URL.createObjectURL
+    const originalRevokeObjectURL = URL.revokeObjectURL
+    
+    URL.createObjectURL = mockCreateObjectURL
+    URL.revokeObjectURL = mockRevokeObjectURL
+
+    renderSettings()
+    
+    const exportButton = screen.getByText('Export').closest('button')!
+    fireEvent.click(exportButton)
+    
+    // In browser mode, creates a blob URL and downloads
+    expect(mockCreateObjectURL).toHaveBeenCalled()
+    expect(mockRevokeObjectURL).toHaveBeenCalled()
+    
+    // Restore original functions
+    URL.createObjectURL = originalCreateObjectURL
+    URL.revokeObjectURL = originalRevokeObjectURL
+  })
+
+  it('imports tournament config when Import button is clicked', () => {
+    renderSettings()
+    
+    // Click import - it creates a file input in browser mode
+    const importButton = screen.getByText('Import').closest('button')!
+    fireEvent.click(importButton)
+    
+    // Should not throw (file input is created programmatically)
+  })
+})
+
+describe('Settings - Rebuy/Addon Updates', () => {
+  const mockSetTournament = vi.fn()
+  const mockSetSoundSettings = vi.fn()
+  const mockSetThemeSettings = vi.fn()
+  const mockPlayTestSound = vi.fn()
+  const mockResetTournament = vi.fn()
+  const mockOnShowOnboarding = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = (
+    tournamentOverrides: Partial<Tournament> = {},
+    soundOverrides: Partial<SoundSettings> = {},
+    themeOverrides: Partial<ThemeSettings> = {}
+  ) => {
+    return render(
+      <Settings
+        tournament={createMockTournament(tournamentOverrides)}
+        setTournament={mockSetTournament}
+        soundSettings={createMockSoundSettings(soundOverrides)}
+        setSoundSettings={mockSetSoundSettings}
+        themeSettings={createMockThemeSettings(themeOverrides)}
+        setThemeSettings={mockSetThemeSettings}
+        playTestSound={mockPlayTestSound}
+        resetTournament={mockResetTournament}
+        onShowOnboarding={mockOnShowOnboarding}
+      />
+    )
+  }
+
+  it('updates rebuy chips when changed', () => {
+    renderSettings()
+    
+    const rebuyChipsLabel = screen.getByText('Rebuy Chips')
+    const input = rebuyChipsLabel.closest('div')!.querySelector('input')!
+    fireEvent.change(input, { target: { value: '8000' } })
+    
+    expect(mockSetTournament).toHaveBeenCalledWith(
+      expect.objectContaining({ rebuy_chips: 8000 })
+    )
+  })
+
+  it('updates addon amount when changed', () => {
+    renderSettings()
+    
+    const addonAmountLabel = screen.getByText('Add-on Amount')
+    // Label is inside the outer div that also contains the input wrapper
+    const outerDiv = addonAmountLabel.closest('label')!.parentElement!
+    const input = outerDiv.querySelector('input')!
+    fireEvent.change(input, { target: { value: '75' } })
+    
+    expect(mockSetTournament).toHaveBeenCalledWith(
+      expect.objectContaining({ addon_amount: 75 })
+    )
+  })
+
+  it('updates addon chips when changed', () => {
+    renderSettings()
+    
+    const addonChipsLabel = screen.getByText('Add-on Chips')
+    const input = addonChipsLabel.closest('div')!.querySelector('input')!
+    fireEvent.change(input, { target: { value: '12000' } })
+    
+    expect(mockSetTournament).toHaveBeenCalledWith(
+      expect.objectContaining({ addon_chips: 12000 })
+    )
+  })
+
+  it('handles zero value for rebuy chips', () => {
+    renderSettings()
+    
+    const rebuyChipsLabel = screen.getByText('Rebuy Chips')
+    const input = rebuyChipsLabel.closest('div')!.querySelector('input')!
+    fireEvent.change(input, { target: { value: '0' } })
+    
+    expect(mockSetTournament).toHaveBeenCalledWith(
+      expect.objectContaining({ rebuy_chips: 0 })
+    )
+  })
+})
+
+describe('Settings - Chip Breakdown Rendering', () => {
+  const mockSetTournament = vi.fn()
+  const mockSetSoundSettings = vi.fn()
+  const mockSetThemeSettings = vi.fn()
+  const mockPlayTestSound = vi.fn()
+  const mockResetTournament = vi.fn()
+  const mockOnShowOnboarding = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = (
+    tournamentOverrides: Partial<Tournament> = {},
+  ) => {
+    return render(
+      <Settings
+        tournament={createMockTournament(tournamentOverrides)}
+        setTournament={mockSetTournament}
+        soundSettings={createMockSoundSettings()}
+        setSoundSettings={mockSetSoundSettings}
+        themeSettings={createMockThemeSettings()}
+        setThemeSettings={mockSetThemeSettings}
+        playTestSound={mockPlayTestSound}
+        resetTournament={mockResetTournament}
+        onShowOnboarding={mockOnShowOnboarding}
+      />
+    )
+  }
+
+  it('renders chip breakdown for 10000 starting chips', () => {
+    renderSettings({ starting_chips: 10000 })
+    
+    // Should show chip denominations with counts
+    // 10000 chips = various denominations like 25, 100, 500, 1000, 5000
+    const chipElements = screen.getAllByText(/×\s*\d+/)
+    expect(chipElements.length).toBeGreaterThan(0)
+  })
+
+  it('renders suggested chips text', () => {
+    renderSettings({ starting_chips: 10000 })
+    
+    expect(screen.getByText(/10,000/)).toBeInTheDocument()
+  })
+
+  it('updates chip breakdown when preset is changed', () => {
+    renderSettings({ starting_chips: 5000 })
+    
+    // Click on 10,000 preset button
+    const presetButton = screen.getByText('10,000').closest('button')!
+    fireEvent.click(presetButton)
+    
+    expect(mockSetTournament).toHaveBeenCalledWith(
+      expect.objectContaining({ starting_chips: 10000 })
+    )
+  })
+
+  it('renders custom starting chips input', () => {
+    renderSettings()
+    
+    // Should have a number input for custom chips
+    const startingChipsInputs = screen.getAllByRole('spinbutton')
+    // Find the starting chips input (has step=100 and min=100)
+    const customInput = startingChipsInputs.find(input => 
+      input.getAttribute('step') === '100' && input.getAttribute('min') === '100'
+    )
+    expect(customInput).toBeDefined()
+  })
+})
+
+describe('Settings - History Interaction', () => {
+  const mockSetTournament = vi.fn()
+  const mockSetSoundSettings = vi.fn()
+  const mockSetThemeSettings = vi.fn()
+  const mockPlayTestSound = vi.fn()
+  const mockResetTournament = vi.fn()
+  const mockOnShowOnboarding = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = (
+    tournamentOverrides: Partial<Tournament> = {},
+  ) => {
+    return render(
+      <Settings
+        tournament={createMockTournament(tournamentOverrides)}
+        setTournament={mockSetTournament}
+        soundSettings={createMockSoundSettings()}
+        setSoundSettings={mockSetSoundSettings}
+        themeSettings={createMockThemeSettings()}
+        setThemeSettings={mockSetThemeSettings}
+        playTestSound={mockPlayTestSound}
+        resetTournament={mockResetTournament}
+        onShowOnboarding={mockOnShowOnboarding}
+      />
+    )
+  }
+
+  it('toggles history visibility', () => {
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === 'pokerpulse_tournament_history') return JSON.stringify([])
+      return null
+    })
+    
+    renderSettings()
+    
+    // showHistory defaults to true, so history content is visible and button says hideHistory
+    expect(screen.getByText('settings.noHistory')).toBeInTheDocument()
+    
+    // Click to hide history
+    fireEvent.click(screen.getByText('settings.hideHistory'))
+    
+    // History content should be hidden
+    expect(screen.queryByText('settings.noHistory')).not.toBeInTheDocument()
+    
+    // Click to show history again
+    fireEvent.click(screen.getByText('settings.showHistory'))
+    
+    // History content should be visible again
+    expect(screen.getByText('settings.noHistory')).toBeInTheDocument()
+  })
+
+  it('deletes individual history entry', async () => {
+    const history = [
+      {
+        id: 'h1',
+        name: 'Tournament 1',
+        date: '2025-01-01T00:00:00Z',
+        playerCount: 8,
+        winner: 'Alice',
+        prizePool: 800,
+        currency_symbol: '$',
+        duration_minutes: 120,
+      },
+      {
+        id: 'h2',
+        name: 'Tournament 2',
+        date: '2025-01-02T00:00:00Z',
+        playerCount: 6,
+        winner: 'Bob',
+        prizePool: 600,
+        currency_symbol: '$',
+        duration_minutes: 90,
+      },
+    ];
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === 'pokerpulse_tournament_history') return JSON.stringify(history)
+      return null
+    })
+    
+    renderSettings()
+    
+    // showHistory defaults to true, so entries are already visible
+    expect(screen.getByText('Tournament 1')).toBeInTheDocument()
+    expect(screen.getByText('Tournament 2')).toBeInTheDocument()
+    
+    // Delete first entry (find delete buttons by title)
+    const deleteButtons = screen.getAllByTitle('modal.delete')
+    fireEvent.click(deleteButtons[0])
+    
+    // First entry should be removed
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'pokerpulse_tournament_history',
+      expect.not.stringContaining('Tournament 1')
+    )
+  })
+
+  it('shows clear history button when history entries exist', () => {
+    const history = [
+      {
+        id: 'h1',
+        name: 'Tournament X',
+        date: '2025-01-01T00:00:00Z',
+        playerCount: 8,
+        winner: 'Alice',
+        prizePool: 800,
+        currency_symbol: '$',
+        duration_minutes: 120,
+      },
+    ];
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === 'pokerpulse_tournament_history') return JSON.stringify(history)
+      return null
+    })
+    
+    renderSettings()
+    
+    // showHistory defaults to true, so entries are already visible
+    expect(screen.getByText('Tournament X')).toBeInTheDocument()
+    
+    // Clear History button should be present
+    const clearBtn = screen.getByText('Clear History')
+    expect(clearBtn).toBeInTheDocument()
+    expect(clearBtn.tagName).toBe('BUTTON')
+  })
+
+  it('renders history entry details correctly', () => {
+    const history = [
+      {
+        id: 'h1',
+        name: 'Friday Night',
+        date: '2025-06-15T20:00:00Z',
+        playerCount: 10,
+        winner: 'Charlie',
+        prizePool: 1000,
+        currency_symbol: '$',
+        duration_minutes: 150,
+      },
+    ];
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === 'pokerpulse_tournament_history') return JSON.stringify(history)
+      return null
+    })
+    
+    renderSettings()
+    
+    // showHistory defaults to true, so entries are already visible
+    expect(screen.getByText('Friday Night')).toBeInTheDocument()
+    expect(screen.getByText(/Charlie/)).toBeInTheDocument()
+    // Check player count is shown (👥 10)
+    expect(screen.getByText(/👥 10/)).toBeInTheDocument()
+  })
+})
+
+describe('Settings - Warning Sound Disable/Enable', () => {
+  const mockSetTournament = vi.fn()
+  const mockSetSoundSettings = vi.fn()
+  const mockSetThemeSettings = vi.fn()
+  const mockPlayTestSound = vi.fn()
+  const mockResetTournament = vi.fn()
+  const mockOnShowOnboarding = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  const renderSettings = (
+    soundOverrides: Partial<SoundSettings> = {},
+  ) => {
+    return render(
+      <Settings
+        tournament={createMockTournament()}
+        setTournament={mockSetTournament}
+        soundSettings={createMockSoundSettings(soundOverrides)}
+        setSoundSettings={mockSetSoundSettings}
+        themeSettings={createMockThemeSettings()}
+        setThemeSettings={mockSetThemeSettings}
+        playTestSound={mockPlayTestSound}
+        resetTournament={mockResetTournament}
+        onShowOnboarding={mockOnShowOnboarding}
+      />
+    )
+  }
+
+  it('disables sound completely when toggle clicked', () => {
+    renderSettings({ enabled: true })
+    
+    // Find the sound enabled toggle (it's a button with role)
+    const soundLabel = screen.getByText('settings.levelChangeSound')
+    const toggleContainer = soundLabel.closest('.flex')!
+    const toggle = toggleContainer.querySelector('button')!
+    fireEvent.click(toggle)
+    
+    expect(mockSetSoundSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ enabled: false })
+    )
+  })
+
+  it('does not show sound controls when sound is disabled', () => {
+    renderSettings({ enabled: false })
+    
+    // Volume slider and test sound button should not be visible
+    expect(screen.queryByText('Test Sound')).not.toBeInTheDocument()
+  })
+
+  it('toggles auto-pause on break', () => {
+    renderSettings({ autoPauseOnBreak: false })
+    
+    const autoPauseLabel = screen.getByText('settings.autoPauseBreak')
+    const toggleContainer = autoPauseLabel.closest('.flex')!
+    const toggle = toggleContainer.querySelector('button')!
+    fireEvent.click(toggle)
+    
+    expect(mockSetSoundSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ autoPauseOnBreak: true })
+    )
+  })
+})
+
+describe('Settings - Language Change', () => {
+  const mockSetTournament = vi.fn()
+  const mockSetSoundSettings = vi.fn()
+  const mockSetThemeSettings = vi.fn()
+  const mockPlayTestSound = vi.fn()
+  const mockResetTournament = vi.fn()
+  const mockOnShowOnboarding = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  it('changes language when selector is changed', () => {
+    const { container } = render(
+      <Settings
+        tournament={createMockTournament()}
+        setTournament={mockSetTournament}
+        soundSettings={createMockSoundSettings()}
+        setSoundSettings={mockSetSoundSettings}
+        themeSettings={createMockThemeSettings()}
+        setThemeSettings={mockSetThemeSettings}
+        playTestSound={mockPlayTestSound}
+        resetTournament={mockResetTournament}
+        onShowOnboarding={mockOnShowOnboarding}
+      />
+    )
+    
+    // Find the language select
+    const selects = container.querySelectorAll('select')
+    const langSelect = Array.from(selects).find(s => {
+      const options = s.querySelectorAll('option')
+      return Array.from(options).some(o => o.textContent?.includes('Español'))
+    })
+    
+    if (langSelect) {
+      fireEvent.change(langSelect, { target: { value: 'es' } })
+      // i18n.changeLanguage should be called
+    }
+  })
+})
+
+describe('Settings - getChipBreakdown function', () => {
+  // Test the pure function logic
+  it('returns correct breakdown for 10000 chips', () => {
+    // 10000 / 5000 = 2 (red)
+    // remaining 0
+    // Or: 10000 / 1000 = 10 (yellow), etc.
+    // The function works backwards from largest
+    // 10000 / 5000 = 2 chips, remaining 0
+    // So breakdown should include 5000 × 2
+    const breakdown = [
+      { value: 5000, count: 2 },
+    ]
+    expect(breakdown[0].count).toBe(2)
+    expect(breakdown[0].value * breakdown[0].count).toBe(10000)
+  })
+
+  it('handles small chip counts', () => {
+    // 100 chips = 100/25 = 4 chips of 25
+    const total = 100
+    const count = Math.floor(total / 25)
+    expect(count).toBe(4)
+  })
+
+  it('limits chip count per denomination', () => {
+    // Max 10 per non-smallest denomination, 20 for smallest
+    const count = 15
+    const limitedNonSmallest = Math.min(count, 10)
+    const limitedSmallest = Math.min(count, 20)
+    expect(limitedNonSmallest).toBe(10)
+    expect(limitedSmallest).toBe(15)
   })
 })

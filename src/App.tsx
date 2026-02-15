@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Tournament, Tab, SoundSettings, ThemeSettings, TournamentHistoryEntry } from './types'
 import { mockApi } from './api'
 import { calculatePrizePool, checkForUpdates, UpdateInfo } from './utils'
@@ -121,6 +122,7 @@ function loadSavedTheme(): ThemeSettings {
 }
 
 export default function App() {
+  const { i18n } = useTranslation()
   const [isLoading, setIsLoading] = useState(true)
   const [tournament, setTournament] = useState<Tournament>(loadSavedTournament)
   const [activeTab, setActiveTab] = useState<Tab>(loadSavedTab)
@@ -197,6 +199,19 @@ export default function App() {
     }
   }, [])
 
+  // Map language codes to localized sound file names
+  const getLocalizedSoundFile = useCallback((langCode: string): string => {
+    const languageMap: Record<string, string> = {
+      'en': 'english',
+      'es': 'spanish',
+      'de': 'german',
+      'fr': 'french',
+      'pt': 'portuguese',
+      'is': 'icelandic',
+    }
+    return languageMap[langCode] || 'english'
+  }, [])
+
   // Play sound when level changes
   const playLevelSound = useCallback(() => {
     if (!soundSettings.enabled) return
@@ -206,6 +221,10 @@ export default function App() {
       soundUrl = '/alarms/bell-ring-01.wav'
     } else if (soundSettings.soundType === 'evil-laugh') {
       soundUrl = '/alarms/evil-laugh.wav'
+    } else if (soundSettings.soundType === 'localized') {
+      const currentLang = i18n.language.split('-')[0] // Handle cases like 'en-US'
+      const soundFile = getLocalizedSoundFile(currentLang)
+      soundUrl = `/alarms/localized/${soundFile}.mp3`
     } else if (soundSettings.customSoundPath) {
       soundUrl = soundSettings.customSoundPath
     } else {
@@ -214,9 +233,9 @@ export default function App() {
 
     const audio = new Audio(soundUrl)
     audio.volume = soundSettings.volume
-    audio.play().catch(err => console.log('Audio play failed:', err))
+    audio.play().catch(err => console.warn('Audio play failed:', err))
     audioRef.current = audio
-  }, [soundSettings])
+  }, [soundSettings, i18n.language, getLocalizedSoundFile])
 
   // Play warning beep sound
   const playWarningSound = useCallback(() => {
@@ -469,22 +488,17 @@ export default function App() {
   // Projector window management
   const toggleProjector = useCallback(async () => {
     if (!checkIsTauri()) {
-      console.log('Not in Tauri environment, cannot open projector')
       return
     }
     
-    console.log('Toggling projector window...')
     try {
       const isOpen = await invoke<boolean>('is_projector_open')
-      console.log('Projector is currently open:', isOpen)
       if (isOpen) {
         await invoke('close_projector_window')
         setIsProjectorOpen(false)
-        console.log('Projector window closed')
       } else {
         await invoke('open_projector_window')
         setIsProjectorOpen(true)
-        console.log('Projector window opened')
       }
     } catch (e) {
       console.error('Failed to toggle projector:', e)
@@ -492,7 +506,6 @@ export default function App() {
       try {
         await invoke('open_projector_window')
         setIsProjectorOpen(true)
-        console.log('Projector window opened (fallback)')
       } catch (e2) {
         console.error('Fallback also failed:', e2)
       }
@@ -559,7 +572,7 @@ export default function App() {
   // Loading Screen
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-themed-primary flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-themed-primary flex flex-col items-center justify-center" role="status" aria-label="Loading">
         {/* Logo / Icon */}
         <div className="mb-8 relative">
           <div className="w-24 h-24 rounded-2xl bg-accent/20 flex items-center justify-center animate-pulse">
@@ -600,7 +613,7 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden">
         <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
         
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 overflow-auto" role="tabpanel">
           {activeTab === 'timer' && (
             <Timer
               tournament={tournament}

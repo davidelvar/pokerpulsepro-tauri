@@ -2,8 +2,10 @@
 
 A beautiful, minimalistic poker tournament timer and manager built with Tauri (Rust) + React + TypeScript.
 
+![Version](https://img.shields.io/badge/Version-1.2.0-blue)
 ![PokerPulsePro](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
+![Tests](https://img.shields.io/badge/Tests-928%20passing-brightgreen)
 
 ## ✨ Features
 
@@ -26,6 +28,7 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
 ### New Features
 - **🔊 Sound Alerts** - Configurable audio alerts between blind levels
   - Built-in sounds: Bell Ring, Evil Laugh
+  - **Voice announcements** - Language-specific level change sounds (matches app language)
   - Custom sound file support (WAV, MP3, OGG, M4A)
   - Adjustable volume control
   - **Warning sounds** at 60 and 30 seconds before level change
@@ -155,26 +158,36 @@ pokerpulsepro-tauri/
 │   │   ├── Settings.tsx    # Tournament, sound & theme settings
 │   │   ├── Help.tsx        # Poker hand rankings reference
 │   │   ├── Header.tsx      # App header with About dropdown
-│   │   └── Navigation.tsx  # Tab navigation
+│   │   ├── Navigation.tsx  # Tab navigation (ARIA accessible)
+│   │   ├── Onboarding.tsx  # Interactive tutorial overlay
+│   │   ├── Modal.tsx       # Custom themed dialog system
+│   │   └── ProjectorView.tsx # Projector/TV display component
+│   ├── i18n/               # Internationalization
+│   │   ├── index.ts        # i18n configuration
+│   │   └── locales/        # Translation files (en, es, de, fr, pt, is)
+│   ├── test/               # Test files (19 test suites)
 │   ├── App.tsx             # Main app with persistence logic
 │   ├── api.ts              # Tauri API bindings & mock data
 │   ├── types.ts            # TypeScript definitions
 │   ├── utils.ts            # Utility functions (prize pool, avg stack)
 │   ├── main.tsx            # React entry point
+│   ├── projector.tsx       # Projector window entry point
 │   └── index.css           # Global styles
 ├── src-tauri/              # Rust backend
 │   ├── src/
 │   │   └── main.rs         # Tauri commands & state
 │   ├── icons/              # App icons
 │   ├── Cargo.toml          # Rust dependencies
-│   └── tauri.conf.json     # Tauri configuration
+│   └── tauri.conf.json     # Tauri configuration (with CSP)
 ├── public/                 # Static assets
 │   └── alarms/             # Sound files
 │       ├── bell-ring-01.wav
-│       └── evil-laugh.wav
+│       ├── evil-laugh.wav
+│       └── localized/      # Voice announcements (en, es, de, fr, pt, is)
 ├── package.json            # Node dependencies
 ├── tailwind.config.js      # Tailwind CSS config
 ├── vite.config.ts          # Vite bundler config
+├── vitest.config.ts        # Test configuration
 └── README.md               # This file
 ```
 
@@ -279,6 +292,21 @@ Builds are output to `src-tauri/target/release/bundle/`:
 - **macOS**: `.dmg` and `.app`
 - **Linux**: `.deb`, `.rpm`, and `.AppImage`
 
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+928 tests across 19 test suites with 78% code coverage.
+
 ### Frontend Only (Web)
 
 ```bash
@@ -323,13 +351,10 @@ Contributions welcome! Please open an issue or PR.
 ## 📋 Changelog
 
 ### v1.2.0
-- **🧪 Comprehensive Test Suite** - 624 tests with 49% coverage
-  - Vitest test framework with React Testing Library
-  - 19 test files covering all major components
-  - Tests for: App, Timer, Players, Blinds, Prizes, Settings, Header, Help, Modal, Navigation, ProjectorView
-  - Utility tests for: api, utils, types, tournament, persistence, i18n, multiTable
-  - 100% coverage on Help, Modal, Navigation components
-  - Run tests with `npm test` or `npm run test:coverage`
+- **🔊 Voice Sound Option** - Language-specific level change announcements
+  - Automatically plays in your selected app language
+  - Supports: English, Spanish, German, French, Portuguese, Icelandic
+  - New "Voice" option alongside Bell, Evil Laugh, and Custom sounds
 - **🎓 Interactive Onboarding** - Guided tutorial for new users
   - Step-by-step walkthrough of all app features
   - Spotlight highlighting shows exactly where each feature is
@@ -355,6 +380,28 @@ Contributions welcome! Please open an issue or PR.
   - "My Templates" library for quick loading
   - Active template indicator with one-click clear
   - Supports 2-8 paid places with custom percentages
+- **🔒 Security Hardening** - Content Security Policy (CSP) configuration
+  - Restrictive CSP rules in Tauri configuration
+  - Limits script, style, image, and network sources
+  - Protects against XSS and injection attacks
+- **♿ Accessibility (a11y)** - ARIA attributes across all components
+  - `role="tablist"` / `role="tab"` with `aria-selected` on navigation
+  - `role="timer"` with `aria-live="assertive"` on countdown display
+  - `role="banner"` with labeled icon buttons on header
+  - `aria-expanded` / `aria-haspopup` on dropdown triggers
+  - `aria-hidden="true"` on decorative SVG icons
+  - Screen reader friendly button labels throughout
+- **🧪 Comprehensive Test Suite** - 928 tests with 78% coverage
+  - Vitest + React Testing Library with v8 coverage
+  - 19 test files covering all major components
+  - Tests for: App, Timer, Players, Blinds, Prizes, Settings, Header, Help, Modal, Navigation, ProjectorView, Onboarding
+  - Utility tests for: api, utils, types, tournament, persistence, i18n, multiTable
+  - 100% coverage on Help, Modal, Navigation, i18n
+  - Run tests with `npm test` or `npm run test:coverage`
+- **🧹 Code Quality** - Production readiness improvements
+  - Removed all debug `console.log` statements
+  - Clean console output in production builds
+  - TypeScript strict mode with zero errors
 
 ### v1.1.0
 - **🌍 Multilingual Support** - Full internationalization (i18n) with 6 languages
@@ -393,8 +440,6 @@ Contributions welcome! Please open an issue or PR.
 - **🔔 Warning Sounds** - Beeps at 60s and 30s before level change
 - **⏸️ Auto-pause on Breaks** - Timer pauses automatically during breaks
 - **🔀 Drag & Drop Blinds** - Reorder levels by dragging
-- **📤 Export/Import** - Save and load tournament configurations
-- **📜 Tournament History** - Log of completed tournaments
 - **📤 Export/Import** - Save and load tournament configurations
 - **📜 Tournament History** - Log of completed tournaments
 - **🪟 Custom Modal Dialogs** - Beautiful themed dialogs

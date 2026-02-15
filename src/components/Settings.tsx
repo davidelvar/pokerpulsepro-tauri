@@ -506,7 +506,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
 
             {soundSettings.enabled && (
               <>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   <button
                     onClick={() => setSoundSettings({ ...soundSettings, soundType: 'bell' })}
                     className={`p-2 rounded-lg text-center transition-colors ${
@@ -528,6 +528,17 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                   >
                     <div className="text-xl mb-1">😈</div>
                     <div className="text-xs font-medium">{t('settings.soundEvilLaugh')}</div>
+                  </button>
+                  <button
+                    onClick={() => setSoundSettings({ ...soundSettings, soundType: 'localized' })}
+                    className={`p-2 rounded-lg text-center transition-colors ${
+                      soundSettings.soundType === 'localized'
+                        ? 'bg-accent/20 border border-emerald-600/50 text-accent'
+                        : 'bg-themed-tertiary hover:bg-themed-secondary text-themed-secondary'
+                    }`}
+                  >
+                    <div className="text-xl mb-1">🌍</div>
+                    <div className="text-xs font-medium">{t('settings.soundLocalized')}</div>
                   </button>
                   <button
                     onClick={selectCustomSound}

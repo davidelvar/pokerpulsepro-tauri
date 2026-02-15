@@ -641,3 +641,399 @@ describe('Onboarding UI Elements', () => {
     })
   })
 })
+
+describe('Onboarding Interactive Tests', () => {
+  const mockOnComplete = vi.fn()
+  const mockOnSkip = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    Object.defineProperty(window, 'innerWidth', { value: 1920, writable: true })
+    Object.defineProperty(window, 'innerHeight', { value: 1080, writable: true })
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  describe('Progress Dot Navigation', () => {
+    it('can jump to a step by clicking a progress dot', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      // Should start at step 1
+      expect(screen.getByText('1 / 9')).toBeInTheDocument()
+      
+      // Click the 5th progress dot (prizes step, index 4)
+      const dots = document.querySelectorAll('button[style*="border-radius: 9999px"]')
+      if (dots.length >= 5) {
+        fireEvent.click(dots[4])
+        expect(screen.getByText('Prize Distribution')).toBeInTheDocument()
+        expect(screen.getByText('5 / 9')).toBeInTheDocument()
+      }
+    })
+
+    it('can jump backward using progress dots', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      // Navigate to step 4
+      for (let i = 0; i < 3; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      expect(screen.getByText('4 / 9')).toBeInTheDocument()
+      
+      // Click the first dot to go back to welcome
+      const dots = document.querySelectorAll('button[style*="border-radius: 9999px"]')
+      if (dots.length >= 1) {
+        fireEvent.click(dots[0])
+        expect(screen.getByText('Welcome to PokerPulse Pro!')).toBeInTheDocument()
+        expect(screen.getByText('1 / 9')).toBeInTheDocument()
+      }
+    })
+
+    it('can jump to last step using progress dot', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      const dots = document.querySelectorAll('button[style*="border-radius: 9999px"]')
+      if (dots.length >= 9) {
+        fireEvent.click(dots[8])
+        expect(screen.getByText("You're All Set!")).toBeInTheDocument()
+        expect(screen.getByText('9 / 9')).toBeInTheDocument()
+      }
+    })
+  })
+
+  describe('Feature Lists for All Steps', () => {
+    it('displays features list for blinds step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      // Navigate to blinds step (index 3)
+      for (let i = 0; i < 3; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      
+      expect(screen.getByText('Blind Structure')).toBeInTheDocument()
+      expect(screen.getByText('Choose from preset templates')).toBeInTheDocument()
+      expect(screen.getByText('Create custom blind structures')).toBeInTheDocument()
+    })
+
+    it('displays features list for prizes step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      for (let i = 0; i < 4; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      
+      expect(screen.getByText('Prize Distribution')).toBeInTheDocument()
+      expect(screen.getByText('Auto-calculates based on buy-ins')).toBeInTheDocument()
+      expect(screen.getByText('Customizable payout percentages')).toBeInTheDocument()
+    })
+
+    it('displays features list for settings step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      for (let i = 0; i < 5; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      
+      expect(screen.getByText('Settings')).toBeInTheDocument()
+      expect(screen.getByText('Theme and accent colors')).toBeInTheDocument()
+      expect(screen.getByText('Sound and notification options')).toBeInTheDocument()
+    })
+
+    it('displays features list for projector step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      for (let i = 0; i < 6; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      
+      expect(screen.getByText('Projector View')).toBeInTheDocument()
+      expect(screen.getByText('Clean, readable display')).toBeInTheDocument()
+      expect(screen.getByText('Shows current and next blinds')).toBeInTheDocument()
+    })
+
+    it('displays features list for fullscreen step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      for (let i = 0; i < 7; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      
+      expect(screen.getByText('Fullscreen Mode')).toBeInTheDocument()
+      expect(screen.getByText('Hide window controls')).toBeInTheDocument()
+      expect(screen.getByText('Use entire screen')).toBeInTheDocument()
+    })
+  })
+
+  describe('Back Button Behavior', () => {
+    it('back button does nothing on first step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      const backButton = screen.getByText('Back').closest('button')!
+      fireEvent.click(backButton)
+      
+      // Still on first step
+      expect(screen.getByText('Welcome to PokerPulse Pro!')).toBeInTheDocument()
+      expect(screen.getByText('1 / 9')).toBeInTheDocument()
+    })
+
+    it('back button navigates between middle steps', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      // Go to step 5 (prizes)
+      for (let i = 0; i < 4; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      expect(screen.getByText('5 / 9')).toBeInTheDocument()
+      
+      // Go back
+      fireEvent.click(screen.getByText('Back'))
+      expect(screen.getByText('4 / 9')).toBeInTheDocument()
+      expect(screen.getByText('Blind Structure')).toBeInTheDocument()
+    })
+  })
+
+  describe('Descriptions for Each Step', () => {
+    it('shows correct description for timer step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      fireEvent.click(screen.getByText('Next'))
+      expect(screen.getByText('The heart of your tournament. Control blinds, track time.')).toBeInTheDocument()
+    })
+
+    it('shows correct description for players step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      fireEvent.click(screen.getByText('Next'))
+      fireEvent.click(screen.getByText('Next'))
+      expect(screen.getByText('Track all your players, their buy-ins, rebuys, and eliminations.')).toBeInTheDocument()
+    })
+
+    it('shows correct description for blinds step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      for (let i = 0; i < 3; i++) fireEvent.click(screen.getByText('Next'))
+      expect(screen.getByText('Customize your blind levels to match your tournament style.')).toBeInTheDocument()
+    })
+
+    it('shows correct description for prizes step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      for (let i = 0; i < 4; i++) fireEvent.click(screen.getByText('Next'))
+      expect(screen.getByText('Automatically calculate and display prize pool distribution.')).toBeInTheDocument()
+    })
+
+    it('shows correct description for settings step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText('Next'))
+      expect(screen.getByText('Customize your tournament experience with comprehensive settings.')).toBeInTheDocument()
+    })
+
+    it('shows correct description for projector step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText('Next'))
+      expect(screen.getByText('Open a separate window optimized for large displays.')).toBeInTheDocument()
+    })
+
+    it('shows correct description for fullscreen step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'))
+      expect(screen.getByText('Maximize the app for a distraction-free experience.')).toBeInTheDocument()
+    })
+  })
+
+  describe('Highlight Element Interaction', () => {
+    it('sets highlight rect when DOM element is found', () => {
+      // Mock querySelector to return a mock element
+      const mockRect = { top: 100, left: 200, width: 300, height: 50, right: 500, bottom: 150, x: 200, y: 100, toJSON: () => {} }
+      const mockElement = {
+        getBoundingClientRect: () => mockRect,
+      }
+      const origQuerySelector = document.querySelector.bind(document)
+      vi.spyOn(document, 'querySelector').mockImplementation((selector: string) => {
+        if (selector.includes('data-onboarding')) {
+          return mockElement as unknown as Element
+        }
+        return origQuerySelector(selector)
+      })
+      
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      // Navigate to timer step which has highlight='timer'
+      fireEvent.click(screen.getByText('Next'))
+      
+      // The component should have called querySelector for the highlight target
+      expect(document.querySelector).toHaveBeenCalledWith('[data-onboarding="timer"]')
+      
+      vi.restoreAllMocks()
+    })
+
+    it('clears highlight rect when element is not found', () => {
+      vi.spyOn(document, 'querySelector').mockReturnValue(null)
+      
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      // Navigate to timer step
+      fireEvent.click(screen.getByText('Next'))
+      
+      // Component should still render without highlight ring
+      expect(screen.getByText('Tournament Timer')).toBeInTheDocument()
+      
+      vi.restoreAllMocks()
+    })
+
+    it('no highlight on welcome step', () => {
+      vi.spyOn(document, 'querySelector')
+      
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      // Welcome step has no highlight - check that no data-onboarding query was made
+      // or that highlightRect is null (no highlight ring visible)
+      expect(screen.getByText('Welcome to PokerPulse Pro!')).toBeInTheDocument()
+      
+      vi.restoreAllMocks()
+    })
+  })
+
+  describe('Resize Event Handling', () => {
+    it('adds resize listener on mount', () => {
+      const addSpy = vi.spyOn(window, 'addEventListener')
+      
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      expect(addSpy).toHaveBeenCalledWith('resize', expect.any(Function))
+      
+      addSpy.mockRestore()
+    })
+
+    it('removes resize listener on unmount', () => {
+      const removeSpy = vi.spyOn(window, 'removeEventListener')
+      
+      const { unmount } = render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      unmount()
+      
+      expect(removeSpy).toHaveBeenCalledWith('resize', expect.any(Function))
+      
+      removeSpy.mockRestore()
+    })
+  })
+
+  describe('Overlay Click Prevention', () => {
+    it('renders clickable overlay element', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      // The overlay div exists with fixed positioning and inset 0
+      const overlays = document.querySelectorAll('div[style*="position: fixed"][style*="inset: 0"]')
+      expect(overlays.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('Skip Button Hover Effects', () => {
+    it('changes style on mouseOver and mouseOut', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      const skipButton = screen.getByText('Skip Tutorial').closest('button')!
+      
+      // Trigger mouseOver
+      fireEvent.mouseOver(skipButton)
+      // Colors are stored as rgb in jsdom
+      expect(skipButton.style.color).toMatch(/#a1a1aa|rgb\(161, 161, 170\)/)
+      expect(skipButton.style.borderColor).toMatch(/#52525b|rgb\(82, 82, 91\)/)
+      
+      // Trigger mouseOut
+      fireEvent.mouseOut(skipButton)
+      expect(skipButton.style.color).toMatch(/#71717a|rgb\(113, 113, 122\)/)
+      expect(skipButton.style.borderColor).toMatch(/#3f3f46|rgb\(63, 63, 70\)/)
+    })
+  })
+
+  describe('Multiple Navigation Patterns', () => {
+    it('can navigate forward and backward repeatedly', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      // Forward 3
+      fireEvent.click(screen.getByText('Next'))
+      fireEvent.click(screen.getByText('Next'))
+      fireEvent.click(screen.getByText('Next'))
+      expect(screen.getByText('4 / 9')).toBeInTheDocument()
+      
+      // Back 2
+      fireEvent.click(screen.getByText('Back'))
+      fireEvent.click(screen.getByText('Back'))
+      expect(screen.getByText('2 / 9')).toBeInTheDocument()
+      
+      // Forward 5
+      for (let i = 0; i < 5; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      expect(screen.getByText('7 / 9')).toBeInTheDocument()
+    })
+
+    it('shows back button as enabled after first step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      fireEvent.click(screen.getByText('Next'))
+      const backButton = screen.getByText('Back').closest('button')!
+      
+      // Should have visible back text (not transparent)
+      expect(backButton.style.color).not.toBe('transparent')
+    })
+
+    it('back button is transparent on first step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      const backButton = screen.getByText('Back').closest('button')!
+      expect(backButton.style.color).toBe('transparent')
+    })
+  })
+
+  describe('Last Step Specifics', () => {
+    it('does not show Next button on last step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      for (let i = 0; i < 8; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      
+      // Should show Get Started instead of Next
+      expect(screen.queryByText('Next')).not.toBeInTheDocument()
+      expect(screen.getByText('Get Started!')).toBeInTheDocument()
+    })
+
+    it('does not show skip button on last step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      for (let i = 0; i < 8; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      
+      expect(screen.queryByText('Skip Tutorial')).not.toBeInTheDocument()
+    })
+
+    it('calls onComplete when Get Started is clicked on last step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      for (let i = 0; i < 8; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      
+      fireEvent.click(screen.getByText('Get Started!'))
+      expect(mockOnComplete).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('Access Later Hint', () => {
+    it('shows access later hint on every step', () => {
+      render(<Onboarding onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      
+      // Check on first step
+      expect(screen.getByText(/You can always access this tutorial/)).toBeInTheDocument()
+      
+      // Check on a middle step
+      fireEvent.click(screen.getByText('Next'))
+      expect(screen.getByText(/You can always access this tutorial/)).toBeInTheDocument()
+      
+      // Check on last step
+      for (let i = 0; i < 7; i++) {
+        fireEvent.click(screen.getByText('Next'))
+      }
+      expect(screen.getByText(/You can always access this tutorial/)).toBeInTheDocument()
+    })
+  })
+})

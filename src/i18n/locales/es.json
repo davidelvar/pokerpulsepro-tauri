@@ -37,6 +37,7 @@
     "tagline": "Cronómetro Profesional de Torneos de Póker"
   },
   "nav": {
+    "navigation": "Navegación",
     "timer": "Cronómetro",
     "players": "Jugadores",
     "blinds": "Ciegas",
@@ -266,6 +267,7 @@
     "levelChangeSoundDesc": "Reproducir un sonido cuando cambia el nivel",
     "soundBell": "Campana",
     "soundEvilLaugh": "Risa Malvada",
+    "soundLocalized": "Voz",
     "soundCustom": "Personalizado",
     "volume": "Volumen",
     "testSound": "Probar Sonido",

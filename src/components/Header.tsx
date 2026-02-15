@@ -50,7 +50,7 @@ export function Header({ tournament, setTournament, isFullscreen, toggleFullscre
   }
 
   return (
-    <header className="h-16 pl-6 pr-4 flex items-center justify-between border-b border-themed bg-themed-secondary/30 backdrop-blur-sm relative z-50">
+    <header className="h-16 pl-6 pr-4 flex items-center justify-between border-b border-themed bg-themed-secondary/30 backdrop-blur-sm relative z-50" role="banner">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
@@ -62,6 +62,7 @@ export function Header({ tournament, setTournament, isFullscreen, toggleFullscre
             onChange={(e) => setTournament({ ...tournament, name: e.target.value })}
             className="bg-transparent text-lg font-semibold text-themed-primary border-none focus:outline-none focus:ring-0 w-64"
             placeholder={t('header.tournamentName')}
+            aria-label={t('header.editName')}
           />
         </div>
       </div>
@@ -91,8 +92,10 @@ export function Header({ tournament, setTournament, isFullscreen, toggleFullscre
               onClick={onToggleProjector}
               className={`btn btn-ghost p-2 relative ${isProjectorOpen ? 'text-accent' : ''}`}
               title={isProjectorOpen ? t('header.closeProjector') : t('header.openProjector')}
+              aria-label={isProjectorOpen ? t('header.closeProjector') : t('header.openProjector')}
+              aria-pressed={isProjectorOpen}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z" />
               </svg>
               {isProjectorOpen && (
@@ -107,8 +110,11 @@ export function Header({ tournament, setTournament, isFullscreen, toggleFullscre
               onClick={() => setShowShortcuts(!showShortcuts)}
               className="btn btn-ghost p-2"
               title={t('header.shortcuts.title')}
+              aria-label={t('header.shortcuts.title')}
+              aria-expanded={showShortcuts}
+              aria-haspopup="true"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
               </svg>
             </button>
@@ -162,6 +168,7 @@ export function Header({ tournament, setTournament, isFullscreen, toggleFullscre
             onClick={toggleFullscreen}
             className="btn btn-ghost p-2"
             title={isFullscreen ? t('header.shortcuts.exitFullscreen') : t('header.shortcuts.fullscreen')}
+            aria-label={isFullscreen ? t('header.shortcuts.exitFullscreen') : t('header.shortcuts.fullscreen')}
           >
             {isFullscreen ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -180,8 +187,11 @@ export function Header({ tournament, setTournament, isFullscreen, toggleFullscre
               onClick={() => setShowAbout(!showAbout)}
               className="btn btn-ghost p-2 relative"
               title={t('header.about.title')}
+              aria-label={t('header.about.title')}
+              aria-expanded={showAbout}
+              aria-haspopup="true"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
               </svg>
               {updateInfo?.updateAvailable && (

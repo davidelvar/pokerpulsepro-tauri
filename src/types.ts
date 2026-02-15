@@ -40,7 +40,7 @@ export interface Tournament {
 
 export interface SoundSettings {
   enabled: boolean
-  soundType: 'bell' | 'evil-laugh' | 'custom'
+  soundType: 'bell' | 'evil-laugh' | 'localized' | 'custom'
   customSoundPath: string | null
   volume: number
   warningEnabled: boolean

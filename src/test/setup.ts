@@ -41,7 +41,7 @@ const mockAudioContext = {
   destination: {},
   currentTime: 0,
 }
-window.AudioContext = vi.fn(() => mockAudioContext) as any
+window.AudioContext = vi.fn(function() { return mockAudioContext }) as any
 
 // Mock Tauri APIs
 vi.mock('@tauri-apps/api/window', () => ({

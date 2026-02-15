@@ -37,6 +37,7 @@
     "tagline": "Minuteur Professionnel de Tournoi de Poker"
   },
   "nav": {
+    "navigation": "Navigation",
     "timer": "Minuteur",
     "players": "Joueurs",
     "blinds": "Blindes",
@@ -266,6 +267,7 @@
     "levelChangeSoundDesc": "Jouer un son quand le niveau change",
     "soundBell": "Cloche",
     "soundEvilLaugh": "Rire Maléfique",
+    "soundLocalized": "Voix",
     "soundCustom": "Personnalisé",
     "volume": "Volume",
     "testSound": "Tester le Son",

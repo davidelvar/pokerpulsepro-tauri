@@ -592,6 +592,241 @@ describe('Players Component Advanced', () => {
       expect(addonElements.length).toBeGreaterThanOrEqual(1)
     })
   })
+
+  describe('Eliminate Player Interaction', () => {
+    it('eliminates a player when eliminate button is clicked', () => {
+      render(<Players tournament={mockTournament} setTournament={mockSetTournament} />)
+      
+      const eliminateButtons = screen.getAllByText('Eliminate')
+      // Click first eliminate button (Alice or Bob)
+      fireEvent.click(eliminateButtons[0])
+      
+      expect(mockSetTournament).toHaveBeenCalled()
+      const updatedTournament = mockSetTournament.mock.calls[0][0]
+      const eliminatedPlayer = updatedTournament.players.find((p: any) => p.eliminated && p.id !== 'p3')
+      expect(eliminatedPlayer).toBeTruthy()
+      expect(eliminatedPlayer.placement).toBeDefined()
+    })
+
+    it('assigns correct placement when eliminating a player', () => {
+      render(<Players tournament={mockTournament} setTournament={mockSetTournament} />)
+      
+      const eliminateButtons = screen.getAllByText('Eliminate')
+      fireEvent.click(eliminateButtons[0])
+      
+      const updatedTournament = mockSetTournament.mock.calls[0][0]
+      // 2 active players, so eliminated player gets placement 2
+      const newlyEliminated = updatedTournament.players.find(
+        (p: any) => p.eliminated && p.id !== 'p3'
+      )
+      expect(newlyEliminated.placement).toBe(2)
+    })
+  })
+
+  describe('Reinstate Player Interaction', () => {
+    it('reinstates an eliminated player', () => {
+      render(<Players tournament={mockTournament} setTournament={mockSetTournament} />)
+      
+      const reinstateButton = screen.getByText('Reinstate')
+      fireEvent.click(reinstateButton)
+      
+      expect(mockSetTournament).toHaveBeenCalled()
+      const updatedTournament = mockSetTournament.mock.calls[0][0]
+      const charlie = updatedTournament.players.find((p: any) => p.id === 'p3')
+      expect(charlie.eliminated).toBe(false)
+      expect(charlie.placement).toBeNull()
+    })
+  })
+
+  describe('Remove Player Interaction', () => {
+    it('removes a player when delete button is clicked', () => {
+      render(<Players tournament={mockTournament} setTournament={mockSetTournament} />)
+      
+      // Delete buttons are the trash icon buttons
+      const deleteButtons = document.querySelectorAll('button.btn.btn-ghost.p-2')
+      const trashButton = Array.from(deleteButtons).find(btn => 
+        btn.querySelector('svg path[d*="M19 7l"]')
+      )
+      expect(trashButton).toBeTruthy()
+      fireEvent.click(trashButton!)
+      
+      expect(mockSetTournament).toHaveBeenCalled()
+      const updatedTournament = mockSetTournament.mock.calls[0][0]
+      expect(updatedTournament.players.length).toBe(2)
+    })
+  })
+
+  describe('Update Player Interactions', () => {
+    it('increments buyins when + button is clicked', () => {
+      const singlePlayerTournament = createMockTournament({
+        players: [createMockPlayer({ id: 'p1', name: 'Alice', buyins: 1 })],
+      })
+      render(<Players tournament={singlePlayerTournament} setTournament={mockSetTournament} />)
+      
+      // + buttons order: [0]=tableCount, [1]=seats, [2]=buyin, [3]=rebuy, [4]=addon
+      const buyinPlusButtons = screen.getAllByText('+')
+      fireEvent.click(buyinPlusButtons[2])
+      
+      expect(mockSetTournament).toHaveBeenCalled()
+      const updated = mockSetTournament.mock.calls[0][0]
+      const player = updated.players.find((p: any) => p.id === 'p1')
+      expect(player.buyins).toBe(2)
+    })
+
+    it('decrements buyins when - button is clicked (min 1)', () => {
+      const singlePlayerTournament = createMockTournament({
+        players: [createMockPlayer({ id: 'p1', name: 'Alice', buyins: 2 })],
+      })
+      render(<Players tournament={singlePlayerTournament} setTournament={mockSetTournament} />)
+      
+      // − buttons order: [0]=tableCount, [1]=seats, [2]=buyin, [3]=rebuy, [4]=addon
+      const minusButtons = screen.getAllByText('−')
+      fireEvent.click(minusButtons[2])
+      
+      expect(mockSetTournament).toHaveBeenCalled()
+      const updated = mockSetTournament.mock.calls[0][0]
+      const player = updated.players.find((p: any) => p.id === 'p1')
+      expect(player.buyins).toBe(1)
+    })
+
+    it('increments rebuys when + rebuy button is clicked', () => {
+      const singlePlayerTournament = createMockTournament({
+        players: [createMockPlayer({ id: 'p1', name: 'Alice', rebuys: 0 })],
+      })
+      render(<Players tournament={singlePlayerTournament} setTournament={mockSetTournament} />)
+      
+      // + buttons: [0]=tableCount, [1]=seats, [2]=buyin, [3]=rebuy, [4]=addon
+      const plusButtons = screen.getAllByText('+')
+      fireEvent.click(plusButtons[3])
+      
+      expect(mockSetTournament).toHaveBeenCalled()
+      const updated = mockSetTournament.mock.calls[0][0]
+      const player = updated.players.find((p: any) => p.id === 'p1')
+      expect(player.rebuys).toBe(1)
+    })
+
+    it('increments addons when + addon button is clicked', () => {
+      const singlePlayerTournament = createMockTournament({
+        players: [createMockPlayer({ id: 'p1', name: 'Alice', addons: 0 })],
+      })
+      render(<Players tournament={singlePlayerTournament} setTournament={mockSetTournament} />)
+      
+      // + buttons: [0]=tableCount, [1]=seats, [2]=buyin, [3]=rebuy, [4]=addon
+      const plusButtons = screen.getAllByText('+')
+      fireEvent.click(plusButtons[4])
+      
+      expect(mockSetTournament).toHaveBeenCalled()
+      const updated = mockSetTournament.mock.calls[0][0]
+      const player = updated.players.find((p: any) => p.id === 'p1')
+      expect(player.addons).toBe(1)
+    })
+
+    it('disables buyin decrement at minimum value (1)', () => {
+      const singlePlayerTournament = createMockTournament({
+        players: [createMockPlayer({ id: 'p1', name: 'Alice', buyins: 1 })],
+      })
+      render(<Players tournament={singlePlayerTournament} setTournament={mockSetTournament} />)
+      
+      const minusButtons = screen.getAllByText('−')
+      // − buttons: [0]=tableCount, [1]=seats, [2]=buyin, [3]=rebuy, [4]=addon
+      expect(minusButtons[2]).toBeDisabled()
+    })
+
+    it('disables rebuy decrement at zero', () => {
+      const singlePlayerTournament = createMockTournament({
+        players: [createMockPlayer({ id: 'p1', name: 'Alice', rebuys: 0 })],
+      })
+      render(<Players tournament={singlePlayerTournament} setTournament={mockSetTournament} />)
+      
+      const minusButtons = screen.getAllByText('−')
+      // − buttons: [0]=tableCount, [1]=seats, [2]=buyin, [3]=rebuy, [4]=addon
+      expect(minusButtons[3]).toBeDisabled()
+    })
+
+    it('disables addon decrement at zero', () => {
+      const singlePlayerTournament = createMockTournament({
+        players: [createMockPlayer({ id: 'p1', name: 'Alice', addons: 0 })],
+      })
+      render(<Players tournament={singlePlayerTournament} setTournament={mockSetTournament} />)
+      
+      const minusButtons = screen.getAllByText('−')
+      // − buttons: [0]=tableCount, [1]=seats, [2]=buyin, [3]=rebuy, [4]=addon
+      expect(minusButtons[4]).toBeDisabled()
+    })
+  })
+
+  describe('Table Management', () => {
+    it('shows table count controls', () => {
+      render(<Players tournament={mockTournament} setTournament={mockSetTournament} />)
+      expect(screen.getByText(/tables\.tables|Tables/i)).toBeInTheDocument()
+    })
+
+    it('increments table count', () => {
+      render(<Players tournament={mockTournament} setTournament={mockSetTournament} />)
+      // Click the table count + button (first + in DOM)
+      const plusButtons = screen.getAllByText('+')
+      fireEvent.click(plusButtons[0])
+      
+      expect(mockSetTournament).toHaveBeenCalled()
+      const updated = mockSetTournament.mock.calls[0][0]
+      expect(updated.tableCount).toBe(3)
+    })
+
+    it('shows table view when table view button clicked', () => {
+      render(<Players tournament={mockTournament} setTournament={mockSetTournament} />)
+      
+      fireEvent.click(screen.getByText('Table View'))
+      
+      // Should show table-specific elements
+      expect(screen.getByText(/Random Assign/)).toBeInTheDocument()
+      expect(screen.getByText(/Clear Assignments/)).toBeInTheDocument()
+    })
+
+    it('shows random assign button in tables view', () => {
+      render(<Players tournament={mockTournament} setTournament={mockSetTournament} />)
+      
+      fireEvent.click(screen.getByText('Table View'))
+      
+      const randomBtn = screen.getByText(/Random Assign/)
+      fireEvent.click(randomBtn)
+      
+      expect(mockSetTournament).toHaveBeenCalled()
+    })
+
+    it('shows clear assignments button in tables view', () => {
+      const assignedTournament = createMockTournament({
+        players: [
+          createMockPlayer({ id: 'p1', name: 'Alice', tableNumber: 1, seatNumber: 1 }),
+          createMockPlayer({ id: 'p2', name: 'Bob', tableNumber: 2, seatNumber: 1 }),
+        ],
+        tableCount: 2,
+      })
+      render(<Players tournament={assignedTournament} setTournament={mockSetTournament} />)
+      
+      fireEvent.click(screen.getByText('Table View'))
+      
+      const clearBtn = screen.getByText(/Clear Assignments/)
+      fireEvent.click(clearBtn)
+      
+      expect(mockSetTournament).toHaveBeenCalled()
+      const updated = mockSetTournament.mock.calls[0][0]
+      updated.players.forEach((p: any) => {
+        expect(p.tableNumber).toBeNull()
+        expect(p.seatNumber).toBeNull()
+      })
+    })
+  })
+
+  describe('No Match Message', () => {
+    it('shows no match message when search yields no results', () => {
+      render(<Players tournament={mockTournament} setTournament={mockSetTournament} />)
+      
+      const searchInput = screen.getByPlaceholderText('Search players...')
+      fireEvent.change(searchInput, { target: { value: 'zzzznotfound' } })
+      
+      expect(screen.getByText(/players\.noMatch|No players yet/)).toBeInTheDocument()
+    })
+  })
 })
 
 describe('Prize Pool Calculations', () => {

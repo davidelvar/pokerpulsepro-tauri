@@ -37,6 +37,7 @@
     "tagline": "Fyrir þitt pókermót"
   },
   "nav": {
+    "navigation": "Leiðsögn",
     "timer": "Klukka",
     "players": "Spilarar",
     "blinds": "Blindar",
@@ -266,6 +267,7 @@
     "levelChangeSoundDesc": "Spila hljóð þegar stig breytist",
     "soundBell": "Bjalla",
     "soundEvilLaugh": "Illur Hlátur",
+    "soundLocalized": "Rödd",
     "soundCustom": "Sérsniðið",
     "volume": "Hljóðstyrkur",
     "testSound": "Prófa Hljóð",

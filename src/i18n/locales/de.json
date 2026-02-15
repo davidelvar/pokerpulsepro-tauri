@@ -37,6 +37,7 @@
     "tagline": "Professioneller Poker-Turnier-Timer"
   },
   "nav": {
+    "navigation": "Navigation",
     "timer": "Timer",
     "players": "Spieler",
     "blinds": "Blinds",
@@ -266,6 +267,7 @@
     "levelChangeSoundDesc": "Sound abspielen, wenn das Level wechselt",
     "soundBell": "Glocke",
     "soundEvilLaugh": "Böses Lachen",
+    "soundLocalized": "Stimme",
     "soundCustom": "Eigener",
     "volume": "Lautstärke",
     "testSound": "Sound testen",

@@ -146,6 +146,10 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
                 ${tournament.is_running ? 'timer-running' : ''}
                 ${isLowTime ? 'text-red-500' : isBreak ? 'text-amber-400' : 'text-themed-primary'}
               `}
+              role="timer"
+              aria-live="assertive"
+              aria-atomic="true"
+              aria-label={`${formatTime(tournament.time_remaining_seconds)} ${tournament.is_running ? t('timer.running') : t('timer.paused')}`}
             >
               {formatTime(tournament.time_remaining_seconds)}
             </div>
@@ -207,14 +211,16 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
                 onClick={prevLevel}
                 className="btn btn-secondary w-12 h-12 rounded-full p-0"
                 title={t('timer.previousLevel')}
+                aria-label={t('timer.previousLevel')}
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
 
               <button
                 onClick={toggleTimer}
+                aria-label={tournament.is_running ? t('timer.pause') : t('timer.play')}
                 className={`
                   w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200
                   ${tournament.is_running 
@@ -224,11 +230,11 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
                 `}
               >
                 {tournament.is_running ? (
-                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
                   </svg>
                 ) : (
-                  <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 )}
@@ -238,9 +244,10 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
                 onClick={nextLevel}
                 className="btn btn-secondary w-12 h-12 rounded-full p-0"
                 title={t('timer.nextLevel')}
+                aria-label={t('timer.nextLevel')}
                 disabled={isFinalLevel}
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
@@ -248,9 +255,9 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
 
             {/* Quick Time Adjustments */}
             <div className="mt-6 flex items-center gap-2">
-              <button onClick={() => addTime(-60)} className="btn btn-ghost text-sm">-1m</button>
-              <button onClick={() => addTime(60)} className="btn btn-ghost text-sm">+1m</button>
-              <button onClick={() => addTime(300)} className="btn btn-ghost text-sm">+5m</button>
+              <button onClick={() => addTime(-60)} className="btn btn-ghost text-sm" aria-label={t('timer.subtractMinute')}>-1m</button>
+              <button onClick={() => addTime(60)} className="btn btn-ghost text-sm" aria-label={t('timer.addMinute')}>+1m</button>
+              <button onClick={() => addTime(300)} className="btn btn-ghost text-sm" aria-label={t('timer.addFiveMin')}>+5m</button>
             </div>
           </>
         )}

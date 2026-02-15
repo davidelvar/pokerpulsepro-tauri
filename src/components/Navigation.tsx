@@ -46,12 +46,15 @@ export function Navigation({ activeTab, setActiveTab }: NavigationProps) {
   const { t } = useTranslation()
   
   return (
-    <nav className="w-20 border-r border-themed bg-themed-secondary/30 flex flex-col items-center py-4 gap-2">
+    <nav className="w-20 border-r border-themed bg-themed-secondary/30 flex flex-col items-center py-4 gap-2" role="tablist" aria-label={t('nav.navigation')}>
       {tabIds.map((tabId) => (
         <button
           key={tabId}
           data-onboarding={tabId}
           onClick={() => setActiveTab(tabId)}
+          role="tab"
+          aria-selected={activeTab === tabId}
+          aria-label={t(`nav.${tabId}`)}
           className={`
             w-14 h-14 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-200
             ${activeTab === tabId

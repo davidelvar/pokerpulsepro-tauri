@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   formatTime,
   formatCurrency,
@@ -16,6 +16,9 @@ import {
   movePlayerToSeat,
   isSeatOccupied,
   getNextAvailableSeat,
+  playSound,
+  checkForUpdates,
+  CURRENT_VERSION,
 } from '../utils'
 import type { Tournament, Player } from '../types'
 
@@ -663,5 +666,208 @@ describe('Version Comparison Logic', () => {
   it('handles different version lengths', () => {
     expect(compareVersions('1.0', '1.0.1')).toBe(true)
     expect(compareVersions('1.0.0', '1.1')).toBe(true)
+  })
+})
+
+describe('playSound', () => {
+  // AudioContext is mocked globally in setup.ts
+  // We just need to verify the function uses it correctly
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('creates an AudioContext', () => {
+    playSound('levelChange')
+    expect(window.AudioContext).toHaveBeenCalled()
+  })
+
+  it('creates an oscillator and gain node', () => {
+    const ctx = (window.AudioContext as any)()
+    vi.clearAllMocks()
+    playSound('levelChange')
+    const newCtx = (window.AudioContext as any).mock.results[0]?.value
+    expect(newCtx.createOscillator).toHaveBeenCalled()
+    expect(newCtx.createGain).toHaveBeenCalled()
+  })
+
+  it('starts the oscillator', () => {
+    playSound('levelChange')
+    const ctx = (window.AudioContext as any).mock.results[0]?.value
+    const oscillator = ctx.createOscillator.mock.results[0]?.value
+    expect(oscillator.start).toHaveBeenCalled()
+  })
+
+  it('stops the oscillator after a short delay', () => {
+    playSound('levelChange')
+    const ctx = (window.AudioContext as any).mock.results[0]?.value
+    const oscillator = ctx.createOscillator.mock.results[0]?.value
+    expect(oscillator.stop).toHaveBeenCalled()
+  })
+
+  it('sets frequency for levelChange to 880', () => {
+    playSound('levelChange')
+    const ctx = (window.AudioContext as any).mock.results[0]?.value
+    const oscillator = ctx.createOscillator.mock.results[0]?.value
+    expect(oscillator.frequency.value).toBe(880)
+  })
+
+  it('sets frequency for warning to 440', () => {
+    playSound('warning')
+    const ctx = (window.AudioContext as any).mock.results[0]?.value
+    const oscillator = ctx.createOscillator.mock.results[0]?.value
+    expect(oscillator.frequency.value).toBe(440)
+  })
+
+  it('sets frequency for break to 660', () => {
+    playSound('break')
+    const ctx = (window.AudioContext as any).mock.results[0]?.value
+    const oscillator = ctx.createOscillator.mock.results[0]?.value
+    expect(oscillator.frequency.value).toBe(660)
+  })
+
+  it('connects oscillator through gain node', () => {
+    playSound('levelChange')
+    const ctx = (window.AudioContext as any).mock.results[0]?.value
+    const oscillator = ctx.createOscillator.mock.results[0]?.value
+    const gainNode = ctx.createGain.mock.results[0]?.value
+    expect(oscillator.connect).toHaveBeenCalledWith(gainNode)
+    expect(gainNode.connect).toHaveBeenCalledWith(ctx.destination)
+  })
+
+  it('sets low gain volume', () => {
+    playSound('levelChange')
+    const ctx = (window.AudioContext as any).mock.results[0]?.value
+    const gainNode = ctx.createGain.mock.results[0]?.value
+    expect(gainNode.gain.value).toBe(0.1)
+  })
+})
+
+describe('checkForUpdates', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null)
+  })
+
+  it('returns cached result within interval', async () => {
+    const cachedData = {
+      timestamp: Date.now(),
+      data: { updateAvailable: false, latestVersion: '1.2.0', downloadUrl: 'https://example.com' },
+    }
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(JSON.stringify(cachedData))
+
+    const result = await checkForUpdates()
+    expect(result).toEqual(cachedData.data)
+  })
+
+  it('ignores expired cache', async () => {
+    const expiredData = {
+      timestamp: Date.now() - 2 * 60 * 60 * 1000, // 2 hours ago
+      data: { updateAvailable: false, latestVersion: '1.0.0', downloadUrl: '' },
+    }
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(JSON.stringify(expiredData))
+
+    // Mock fetch for GitHub API fallback
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ tag_name: 'v1.2.0', body: 'Release notes' }),
+    }) as any
+
+    const result = await checkForUpdates()
+    expect(global.fetch).toHaveBeenCalled()
+
+    vi.restoreAllMocks()
+  })
+
+  it('returns null on fetch failure', async () => {
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null)
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+    }) as any
+
+    const result = await checkForUpdates()
+    expect(result).toBeNull()
+
+    vi.restoreAllMocks()
+  })
+
+  it('returns null on network error', async () => {
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null)
+
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network error')) as any
+
+    const result = await checkForUpdates()
+    expect(result).toBeNull()
+
+    vi.restoreAllMocks()
+  })
+
+  it('detects new version available', async () => {
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null)
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ tag_name: 'v99.0.0', body: 'Big update' }),
+    }) as any
+
+    const result = await checkForUpdates()
+    expect(result?.updateAvailable).toBe(true)
+    expect(result?.latestVersion).toBe('99.0.0')
+
+    vi.restoreAllMocks()
+  })
+
+  it('detects no update when versions match', async () => {
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null)
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ tag_name: `v${CURRENT_VERSION}`, body: '' }),
+    }) as any
+
+    const result = await checkForUpdates()
+    expect(result?.updateAvailable).toBe(false)
+
+    vi.restoreAllMocks()
+  })
+
+  it('caches the result in localStorage', async () => {
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null)
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ tag_name: 'v1.2.0', body: '' }),
+    }) as any
+
+    await checkForUpdates()
+    expect(localStorage.setItem).toHaveBeenCalled()
+
+    vi.restoreAllMocks()
+  })
+
+  it('includes release notes in result', async () => {
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null)
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ tag_name: 'v2.0.0', body: 'Major release notes' }),
+    }) as any
+
+    const result = await checkForUpdates()
+    expect(result?.releaseNotes).toBe('Major release notes')
+
+    vi.restoreAllMocks()
+  })
+})
+
+describe('CURRENT_VERSION', () => {
+  it('is a valid semver string', () => {
+    expect(CURRENT_VERSION).toMatch(/^\d+\.\d+\.\d+$/)
+  })
+
+  it('is the expected version', () => {
+    expect(CURRENT_VERSION).toBe('1.2.0')
   })
 })

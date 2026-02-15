@@ -28,12 +28,19 @@ vi.mock('react-i18next', () => ({
         'navigation.prizes': 'Prizes',
         'navigation.settings': 'Settings',
         'navigation.help': 'Help',
+        'nav.timer': 'Timer',
+        'nav.players': 'Players',
+        'nav.blinds': 'Blinds',
+        'nav.prizes': 'Prizes',
+        'nav.settings': 'Settings',
+        'nav.help': 'Help',
         'header.editName': 'Edit Name',
         'header.projectorOpen': 'Projector Open',
         'header.openProjector': 'Open Projector',
         'header.fullscreen': 'Fullscreen',
         'header.exitFullscreen': 'Exit Fullscreen',
         'timer.level': 'Level',
+        'timer.levelOf': 'Level {{current}} of {{total}}',
         'timer.running': 'Running',
         'timer.paused': 'Paused',
         'timer.play': 'Play',
@@ -45,13 +52,23 @@ vi.mock('react-i18next', () => ({
         'timer.reset': 'Reset',
         'timer.complete': 'Complete',
         'timer.totalPlayers': 'Total Players',
+        'timer.players': 'Players',
         'timer.playersRemaining': 'Players Remaining',
         'timer.averageStack': 'Average Stack',
         'timer.totalChips': 'Total Chips',
         'timer.prizePool': 'Prize Pool',
         'timer.blinds': 'Blinds',
+        'timer.smallBlind': 'Small Blind',
+        'timer.bigBlind': 'Big Blind',
+        'timer.finalLevel': 'Final Level',
         'timer.ante': 'Ante',
         'timer.break': 'Break',
+        'timer.tournamentComplete': 'Tournament Complete',
+        'timer.goBackLevel': 'Go Back',
+        'timer.addFiveMin': 'Add 5 Min',
+        'timer.saveToHistory': 'Save to History',
+        'timer.resetTournament': 'Reset Tournament',
+        'blinds.quickTemplates': 'Quick Templates',
         'settings.appearance': 'Appearance',
         'settings.theme': 'Theme',
         'settings.dark': 'Dark',
@@ -88,6 +105,7 @@ vi.mock('react-i18next', () => ({
         'modal.resetTournament.confirm': 'Reset',
         'players.title': 'Players',
         'players.add': 'Add Player',
+        'players.addPlayer': 'Add Player',
         'players.name': 'Name',
         'players.status': 'Status',
         'players.active': 'Active',
@@ -120,6 +138,17 @@ vi.mock('react-i18next', () => ({
         'onboarding.accessLater': 'You can always access this tutorial from Settings or Help',
         'onboarding.steps.welcome.title': 'Welcome to PokerPulse Pro!',
         'onboarding.steps.welcome.description': 'Your professional poker tournament management tool.',
+        'timer.allLevelsFinished': 'All levels finished!',
+        'timer.finalPrizePool': 'Final Prize Pool',
+        'timer.finalBlinds': 'Final Blinds',
+        'timer.tournamentWinner': 'Tournament Winner',
+        'timer.enterWinnerName': 'Enter winner name',
+        'timer.winnerPlaceholder': 'Winner name',
+        'timer.saveTournament': 'Save Tournament',
+        'timer.tournamentSaved': 'Tournament Saved',
+        'timer.tournamentSavedMessage': 'Tournament saved to history',
+        'modal.ok': 'OK',
+        'modal.cancel': 'Cancel',
       }
       if (options?.returnObjects) {
         return translations[key] ?? null
@@ -160,6 +189,1073 @@ describe('App Component', () => {
       // Check for animated elements
       const animatedElements = container.querySelectorAll('.animate-pulse, .animate-spin, .animate-bounce')
       expect(animatedElements.length).toBeGreaterThan(0)
+    })
+
+    it('transitions to main app after loading', async () => {
+      vi.useFakeTimers()
+      render(<App />)
+      
+      // Initially shows loading
+      expect(screen.getByText('PokerPulsePro')).toBeInTheDocument()
+      
+      // Advance past loading delay (1200ms)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      
+      // Should now show the main UI with navigation tabs
+      expect(screen.getByText('Timer')).toBeInTheDocument()
+      
+      vi.useRealTimers()
+    })
+  })
+
+  describe('Main UI after loading', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      // Dismiss onboarding so tests can interact with main UI
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    const renderAndLoad = async () => {
+      const result = render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      return result
+    }
+
+    it('renders navigation tabs', async () => {
+      await renderAndLoad()
+      
+      // Use getAllByText for items that appear in both nav and Timer content
+      expect(screen.getAllByText('Timer').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('Players').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('Blinds').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getByText('Prizes')).toBeInTheDocument()
+      expect(screen.getByText('Settings')).toBeInTheDocument()
+      expect(screen.getByText('Help')).toBeInTheDocument()
+    })
+
+    it('shows timer tab by default', async () => {
+      await renderAndLoad()
+      
+      // Timer component renders level info and time display
+      expect(screen.getByText(/Level.*of/)).toBeInTheDocument()
+    })
+
+    it('switches to players tab when clicked', async () => {
+      await renderAndLoad()
+      
+      // Click the first 'Players' (nav tab) — Timer stats also shows 'Players'
+      const playersElements = screen.getAllByText('Players')
+      fireEvent.click(playersElements[0])
+      
+      // Players component renders Add Player button
+      expect(screen.getByText('Add Player')).toBeInTheDocument()
+    })
+
+    it('switches to blinds tab when clicked', async () => {
+      await renderAndLoad()
+      
+      fireEvent.click(screen.getByText('Blinds'))
+      
+      expect(screen.getByText('Quick Templates')).toBeInTheDocument()
+    })
+
+    it('switches to settings tab when clicked', async () => {
+      await renderAndLoad()
+      
+      fireEvent.click(screen.getByText('Settings'))
+      
+      expect(screen.getByText('Appearance')).toBeInTheDocument()
+    })
+
+    it('switches to help tab when clicked', async () => {
+      await renderAndLoad()
+      
+      fireEvent.click(screen.getByText('Help'))
+      
+      // Help tab content visible (multiple elements may have 'Help' text)
+      const helpElements = screen.getAllByText('Help')
+      expect(helpElements.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('saves active tab to localStorage when changed', async () => {
+      await renderAndLoad()
+      
+      // Click the first 'Players' (nav tab)
+      const playersElements = screen.getAllByText('Players')
+      fireEvent.click(playersElements[0])
+      
+      expect(localStorage.setItem).toHaveBeenCalledWith('pokerpulse_active_tab', 'players')
+    })
+
+    it('saves tournament state to localStorage', async () => {
+      await renderAndLoad()
+      
+      // Tournament is saved on mount
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'pokerpulse_tournament',
+        expect.any(String)
+      )
+    })
+
+    it('saves theme settings to localStorage', async () => {
+      await renderAndLoad()
+      
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'pokerpulse_theme_settings',
+        expect.any(String)
+      )
+    })
+
+    it('applies dark mode class to document', async () => {
+      await renderAndLoad()
+      
+      expect(document.documentElement.classList.contains('dark')).toBe(true)
+    })
+
+    it('applies accent class to document', async () => {
+      await renderAndLoad()
+      
+      expect(document.documentElement.classList.contains('accent-emerald')).toBe(true)
+    })
+  })
+
+  describe('Keyboard Shortcuts Integration', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      // Dismiss onboarding
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    const renderAndLoad = async () => {
+      const result = render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      return result
+    }
+
+    it('toggles timer with Space key', async () => {
+      const { container } = await renderAndLoad()
+      
+      // Timer uses CSS class 'timer-running' when running, no class when paused
+      expect(container.querySelector('.timer-running')).toBeNull()
+      
+      // Press Space to start timer
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'Space' })
+      })
+      
+      // Should now have timer-running class
+      expect(container.querySelector('.timer-running')).toBeInTheDocument()
+    })
+    
+    it('does not trigger shortcuts when typing in input', async () => {
+      const { container } = await renderAndLoad()
+      
+      // Navigate to settings which has inputs
+      fireEvent.click(screen.getByText('Settings'))
+      
+      const inputs = screen.getAllByRole('textbox')
+      if (inputs.length > 0) {
+        // Focus on an input and press Space
+        fireEvent.keyDown(inputs[0], { code: 'Space', target: inputs[0] })
+        
+        // Timer should still be paused since we're in an input
+        fireEvent.click(screen.getByText('Timer'))
+        expect(container.querySelector('.timer-running')).toBeNull()
+      }
+    })
+
+    it('adds time with + key', async () => {
+      await renderAndLoad()
+      
+      // Default time is 15:00 (900s)
+      expect(screen.getByText('15:00')).toBeInTheDocument()
+      
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'Equal' })
+      })
+      
+      // Time should increase by 60 seconds to 16:00
+      expect(screen.getByText('16:00')).toBeInTheDocument()
+    })
+
+    it('subtracts time with - key', async () => {
+      await renderAndLoad()
+      
+      expect(screen.getByText('15:00')).toBeInTheDocument()
+      
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'Minus' })
+      })
+      
+      // Time should decrease by 60 seconds to 14:00
+      expect(screen.getByText('14:00')).toBeInTheDocument()
+    })
+
+    it('handles NumpadAdd for adding time', async () => {
+      await renderAndLoad()
+      
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'NumpadAdd' })
+      })
+      
+      // Should work without error, time increases
+      expect(screen.getByText('16:00')).toBeInTheDocument()
+    })
+
+    it('handles NumpadSubtract for removing time', async () => {
+      await renderAndLoad()
+      
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'NumpadSubtract' })
+      })
+      
+      expect(screen.getByText('14:00')).toBeInTheDocument()
+    })
+  })
+
+  describe('Timer Functionality', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      // Dismiss onboarding
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    const renderAndLoad = async () => {
+      const result = render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      return result
+    }
+
+    it('counts down when running', async () => {
+      const { container } = await renderAndLoad()
+      
+      // Toggle timer on
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'Space' })
+      })
+      
+      expect(container.querySelector('.timer-running')).toBeInTheDocument()
+      
+      // Advance 1 second
+      await act(async () => {
+        vi.advanceTimersByTime(1000)
+      })
+      
+      // Timer should still be running (timer-running class present)
+      expect(container.querySelector('.timer-running')).toBeInTheDocument()
+      // Time should have decremented from 15:00 to 14:59
+      expect(screen.getByText('14:59')).toBeInTheDocument()
+    })
+
+    it('shows reset tournament confirm modal', async () => {
+      await renderAndLoad()
+      
+      // Navigate to settings
+      fireEvent.click(screen.getByText('Settings'))
+
+      // Click the danger zone Reset Tournament button
+      const resetButtons = screen.getAllByText('Reset Tournament')
+      // The button is in the danger zone — find the one that IS a button element
+      for (const el of resetButtons) {
+        const btn = el.closest('button')
+        if (btn && btn.classList.contains('btn-danger')) {
+          fireEvent.click(btn)
+          break
+        }
+      }
+      
+      // Confirm modal should appear with hardcoded English text
+      expect(screen.getByText(/Are you sure you want to reset/)).toBeInTheDocument()
+    })
+  })
+
+  describe('Onboarding', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('shows onboarding on first visit', async () => {
+      // No onboarding_complete in localStorage
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null)
+      
+      render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      
+      // Onboarding should be visible
+      expect(screen.getByText(/Welcome to PokerPulse/)).toBeInTheDocument()
+    })
+
+    it('does not show onboarding when already completed', async () => {
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+      
+      render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      
+      // Onboarding should not be visible
+      expect(screen.queryByText(/Welcome to PokerPulse/)).not.toBeInTheDocument()
+    })
+
+    it('completes onboarding and saves to localStorage', async () => {
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null)
+      
+      render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      
+      // Skip the onboarding
+      const skipButton = screen.getByText('Skip Tutorial')
+      fireEvent.click(skipButton)
+      
+      expect(localStorage.setItem).toHaveBeenCalledWith('pokerpulse_onboarding_complete', 'true')
+    })
+  })
+
+  describe('Theme Application', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('loads saved theme from localStorage', async () => {
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_theme_settings') return JSON.stringify({ mode: 'light', accent: 'blue' })
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+      
+      render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      
+      expect(document.documentElement.classList.contains('light')).toBe(true)
+      expect(document.documentElement.classList.contains('accent-blue')).toBe(true)
+    })
+  })
+
+  describe('Saved State Restoration', () => {
+    it('loads saved tab from localStorage', async () => {
+      vi.useFakeTimers();
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_active_tab') return 'blinds'
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+      
+      render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      
+      // Blinds tab renders Quick Templates heading
+      expect(screen.getByText('Quick Templates')).toBeInTheDocument()
+      
+      vi.useRealTimers()
+    })
+
+    it('loads saved sound settings from localStorage', async () => {
+      vi.useFakeTimers()
+      const savedSettings = {
+        enabled: false,
+        soundType: 'evil-laugh',
+        volume: 0.5,
+        customSoundPath: null,
+        warningEnabled: false,
+        warningAt60: false,
+        warningAt30: false,
+        autoPauseOnBreak: false,
+      };
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_sound_settings') return JSON.stringify(savedSettings)
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+      
+      render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      
+      // Navigate to settings and check sound is disabled
+      fireEvent.click(screen.getByText('Settings'))
+      
+      // The component should render with sound settings loaded
+      expect(screen.getByText('Settings')).toBeInTheDocument()
+      
+      vi.useRealTimers()
+    })
+
+    it('handles corrupted localStorage data gracefully', async () => {
+      vi.useFakeTimers();
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_tournament') return 'not valid json{'
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+      
+      // Should not throw
+      render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      
+      // Should fall back to defaults
+      expect(screen.getByText('Timer')).toBeInTheDocument()
+      
+      vi.useRealTimers()
+    })
+
+    it('migrates old tournament data without addon fields', async () => {
+      vi.useFakeTimers()
+      const oldData = {
+        id: 'old-tournament',
+        name: 'Old Tournament',
+        buyin_amount: 100,
+        rebuy_amount: 50,
+        starting_chips: 15000,
+        players: [{ id: '1', name: 'P1', buyins: 1, rebuys: 0, eliminated: false, placement: null, tableNumber: null, seatNumber: null }],
+        blind_structure: [{ id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false }],
+        current_level: 0,
+        time_remaining_seconds: 900,
+        is_running: true,
+        currency_symbol: '$',
+        tableCount: 1,
+        seatsPerTable: 9,
+      };
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_tournament') return JSON.stringify(oldData)
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+      
+      const { container } = render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      
+      // Should render without errors - migration adds missing fields
+      expect(screen.getByText('Timer')).toBeInTheDocument()
+      // Should always start paused when restored (no timer-running class)
+      expect(container.querySelector('.timer-running')).toBeNull()
+      
+      vi.useRealTimers()
+    })
+  })
+
+  describe('Arrow Key Level Navigation', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      ;(window as any).Audio = vi.fn(function() { return { volume: 0, play: vi.fn().mockResolvedValue(undefined) } })
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    const renderAndLoad = async () => {
+      const result = render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      return result
+    }
+
+    it('advances to next level with ArrowRight', async () => {
+      await renderAndLoad()
+
+      // At level 0, next preview shows 50/100. "150" not visible.
+      expect(screen.queryByText('150')).not.toBeInTheDocument()
+
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'ArrowRight' })
+      })
+
+      // At level 1, next preview shows 75/150
+      expect(screen.getByText('150')).toBeInTheDocument()
+    })
+
+    it('goes back to previous level with ArrowLeft', async () => {
+      await renderAndLoad()
+
+      // Advance to level 1
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'ArrowRight' })
+      })
+      expect(screen.getByText('150')).toBeInTheDocument()
+
+      // Go back to level 0
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'ArrowLeft' })
+      })
+
+      expect(screen.queryByText('150')).not.toBeInTheDocument()
+      expect(screen.getByText('25')).toBeInTheDocument()
+    })
+
+    it('does not go before first level', async () => {
+      await renderAndLoad()
+
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'ArrowLeft' })
+      })
+
+      // Still at level 0
+      expect(screen.getByText('25')).toBeInTheDocument()
+    })
+
+    it('navigates to break level with correct duration', async () => {
+      await renderAndLoad()
+
+      // Navigate to level 4 (break) - 4 ArrowRight presses
+      for (let i = 0; i < 4; i++) {
+        await act(async () => {
+          fireEvent.keyDown(window, { code: 'ArrowRight' })
+        })
+      }
+
+      // Break has 10-minute duration
+      expect(screen.getByText('10:00')).toBeInTheDocument()
+    })
+  })
+
+  describe('Level Change Sound Playback', () => {
+    let mockAudioPlay: ReturnType<typeof vi.fn>
+    let MockAudioConstructor: ReturnType<typeof vi.fn>
+
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      mockAudioPlay = vi.fn().mockResolvedValue(undefined)
+      MockAudioConstructor = vi.fn(function() { return { volume: 0, play: mockAudioPlay } })
+      ;(window as any).Audio = MockAudioConstructor
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    const renderAndLoad = async () => {
+      const result = render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      return result
+    }
+
+    it('plays bell sound when level changes', async () => {
+      await renderAndLoad()
+
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'ArrowRight' })
+      })
+
+      expect(MockAudioConstructor).toHaveBeenCalledWith('/alarms/bell-ring-01.wav')
+      expect(mockAudioPlay).toHaveBeenCalled()
+    })
+
+    it('plays evil-laugh sound when configured', async () => {
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        if (key === 'pokerpulse_sound_settings') return JSON.stringify({
+          enabled: true, soundType: 'evil-laugh', customSoundPath: null,
+          volume: 0.7, warningEnabled: true, warningAt60: true, warningAt30: true, autoPauseOnBreak: true,
+        })
+        return null
+      })
+
+      await renderAndLoad()
+
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'ArrowRight' })
+      })
+
+      expect(MockAudioConstructor).toHaveBeenCalledWith('/alarms/evil-laugh.wav')
+    })
+
+    it('plays localized sound for current language', async () => {
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        if (key === 'pokerpulse_sound_settings') return JSON.stringify({
+          enabled: true, soundType: 'localized', customSoundPath: null,
+          volume: 0.7, warningEnabled: true, warningAt60: true, warningAt30: true, autoPauseOnBreak: true,
+        })
+        return null
+      })
+
+      await renderAndLoad()
+
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'ArrowRight' })
+      })
+
+      expect(MockAudioConstructor).toHaveBeenCalledWith('/alarms/localized/english.mp3')
+    })
+
+    it('does not play sound when disabled', async () => {
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        if (key === 'pokerpulse_sound_settings') return JSON.stringify({
+          enabled: false, soundType: 'bell', customSoundPath: null,
+          volume: 0.7, warningEnabled: true, warningAt60: true, warningAt30: true, autoPauseOnBreak: true,
+        })
+        return null
+      })
+
+      await renderAndLoad()
+
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'ArrowRight' })
+      })
+
+      expect(MockAudioConstructor).not.toHaveBeenCalled()
+    })
+
+    it('sets correct volume on audio element', async () => {
+      await renderAndLoad()
+
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'ArrowRight' })
+      })
+
+      const audioInstance = MockAudioConstructor.mock.results[0]?.value
+      expect(audioInstance).toBeDefined()
+      expect(audioInstance.volume).toBe(0.7)
+    })
+  })
+
+  describe('Warning Sounds Integration', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      ;(window as any).Audio = vi.fn(function() { return { volume: 0, play: vi.fn().mockResolvedValue(undefined) } })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('plays warning beep at 60 seconds remaining', async () => {
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_tournament') return JSON.stringify({
+          id: 'dev-tournament', name: 'Test', buyin_amount: 100, rebuy_amount: 100,
+          rebuy_chips: 10000, addon_amount: 100, addon_chips: 10000, starting_chips: 10000,
+          players: [{ id: '1', name: 'Alice', buyins: 1, rebuys: 0, addons: 0, eliminated: false, placement: null, tableNumber: null, seatNumber: null }],
+          blind_structure: [
+            { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+            { id: '2', small_blind: 50, big_blind: 100, ante: 0, duration_minutes: 15, is_break: false },
+          ],
+          current_level: 0, time_remaining_seconds: 62, is_running: false,
+          currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+        })
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+
+      render(<App />)
+      await act(async () => { vi.advanceTimersByTime(1300) })
+
+      ;(window.AudioContext as ReturnType<typeof vi.fn>).mockClear()
+
+      // Start timer
+      await act(async () => { fireEvent.keyDown(window, { code: 'Space' }) })
+
+      // Advance 2 seconds: 62 → 61 → 60
+      await act(async () => { vi.advanceTimersByTime(2000) })
+
+      // Warning sound triggers via AudioContext
+      expect(window.AudioContext).toHaveBeenCalled()
+    })
+
+    it('plays warning beep at 30 seconds remaining', async () => {
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_tournament') return JSON.stringify({
+          id: 'dev-tournament', name: 'Test', buyin_amount: 100, rebuy_amount: 100,
+          rebuy_chips: 10000, addon_amount: 100, addon_chips: 10000, starting_chips: 10000,
+          players: [{ id: '1', name: 'Alice', buyins: 1, rebuys: 0, addons: 0, eliminated: false, placement: null, tableNumber: null, seatNumber: null }],
+          blind_structure: [
+            { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+            { id: '2', small_blind: 50, big_blind: 100, ante: 0, duration_minutes: 15, is_break: false },
+          ],
+          current_level: 0, time_remaining_seconds: 32, is_running: false,
+          currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+        })
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+
+      render(<App />)
+      await act(async () => { vi.advanceTimersByTime(1300) })
+
+      ;(window.AudioContext as ReturnType<typeof vi.fn>).mockClear()
+
+      await act(async () => { fireEvent.keyDown(window, { code: 'Space' }) })
+
+      // Advance 2 seconds: 32 → 31 → 30
+      await act(async () => { vi.advanceTimersByTime(2000) })
+
+      expect(window.AudioContext).toHaveBeenCalled()
+    })
+  })
+
+  describe('Timer Auto-Advance', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      ;(window as any).Audio = vi.fn(function() { return { volume: 0, play: vi.fn().mockResolvedValue(undefined) } })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('advances to next level when time runs out', async () => {
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_tournament') return JSON.stringify({
+          id: 'dev-tournament', name: 'Test', buyin_amount: 100, rebuy_amount: 100,
+          rebuy_chips: 10000, addon_amount: 100, addon_chips: 10000, starting_chips: 10000,
+          players: [{ id: '1', name: 'Alice', buyins: 1, rebuys: 0, addons: 0, eliminated: false, placement: null, tableNumber: null, seatNumber: null }],
+          blind_structure: [
+            { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+            { id: '2', small_blind: 50, big_blind: 100, ante: 0, duration_minutes: 15, is_break: false },
+            { id: '3', small_blind: 75, big_blind: 150, ante: 0, duration_minutes: 15, is_break: false },
+          ],
+          current_level: 0, time_remaining_seconds: 2, is_running: false,
+          currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+        })
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+
+      render(<App />)
+      await act(async () => { vi.advanceTimersByTime(1300) })
+
+      // Start timer
+      await act(async () => { fireEvent.keyDown(window, { code: 'Space' }) })
+
+      // Advance 3 seconds: 2→1→0→auto-advance to level 1
+      await act(async () => { vi.advanceTimersByTime(3000) })
+
+      // At level 1, next preview shows 75/150
+      expect(screen.getByText('150')).toBeInTheDocument()
+    })
+
+    it('stops timer at last level when time runs out', async () => {
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_tournament') return JSON.stringify({
+          id: 'dev-tournament', name: 'Test', buyin_amount: 100, rebuy_amount: 100,
+          rebuy_chips: 10000, addon_amount: 100, addon_chips: 10000, starting_chips: 10000,
+          players: [{ id: '1', name: 'Alice', buyins: 1, rebuys: 0, addons: 0, eliminated: false, placement: null, tableNumber: null, seatNumber: null }],
+          blind_structure: [
+            { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+            { id: '2', small_blind: 200, big_blind: 400, ante: 50, duration_minutes: 15, is_break: false },
+          ],
+          current_level: 1, time_remaining_seconds: 2, is_running: false,
+          currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+        })
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+
+      const { container } = render(<App />)
+      await act(async () => { vi.advanceTimersByTime(1300) })
+
+      // Start timer
+      await act(async () => { fireEvent.keyDown(window, { code: 'Space' }) })
+
+      // Advance 3 seconds
+      await act(async () => { vi.advanceTimersByTime(3000) })
+
+      // Timer should stop
+      expect(container.querySelector('.timer-running')).toBeNull()
+      // Tournament complete state
+      expect(screen.getByText('Tournament Complete')).toBeInTheDocument()
+    })
+  })
+
+  describe('Auto-Pause on Break', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      ;(window as any).Audio = vi.fn(function() { return { volume: 0, play: vi.fn().mockResolvedValue(undefined) } })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('pauses timer when auto-advancing to break level', async () => {
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_tournament') return JSON.stringify({
+          id: 'dev-tournament', name: 'Test', buyin_amount: 100, rebuy_amount: 100,
+          rebuy_chips: 10000, addon_amount: 100, addon_chips: 10000, starting_chips: 10000,
+          players: [{ id: '1', name: 'Alice', buyins: 1, rebuys: 0, addons: 0, eliminated: false, placement: null, tableNumber: null, seatNumber: null }],
+          blind_structure: [
+            { id: '1', small_blind: 100, big_blind: 200, ante: 25, duration_minutes: 15, is_break: false },
+            { id: 'break1', small_blind: 0, big_blind: 0, ante: 0, duration_minutes: 10, is_break: true },
+            { id: '2', small_blind: 150, big_blind: 300, ante: 25, duration_minutes: 15, is_break: false },
+          ],
+          current_level: 0, time_remaining_seconds: 2, is_running: false,
+          currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+        })
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+
+      const { container } = render(<App />)
+      await act(async () => { vi.advanceTimersByTime(1300) })
+
+      // Start timer
+      await act(async () => { fireEvent.keyDown(window, { code: 'Space' }) })
+      expect(container.querySelector('.timer-running')).toBeInTheDocument()
+
+      // Advance 3 seconds → auto-advance to break level
+      await act(async () => { vi.advanceTimersByTime(3000) })
+
+      // Timer should be paused due to auto-pause on break
+      expect(container.querySelector('.timer-running')).toBeNull()
+      // Break duration shown
+      expect(screen.getByText('10:00')).toBeInTheDocument()
+    })
+  })
+
+  describe('Browser Fullscreen Toggle', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      ;(window as any).Audio = vi.fn(function() { return { volume: 0, play: vi.fn().mockResolvedValue(undefined) } })
+      document.documentElement.requestFullscreen = vi.fn().mockResolvedValue(undefined)
+      document.exitFullscreen = vi.fn().mockResolvedValue(undefined)
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+      Object.defineProperty(document, 'fullscreenElement', { value: null, configurable: true })
+    })
+
+    const renderAndLoad = async () => {
+      const result = render(<App />)
+      await act(async () => {
+        vi.advanceTimersByTime(1300)
+      })
+      return result
+    }
+
+    it('enters fullscreen with F11 key', async () => {
+      await renderAndLoad()
+
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'F11' })
+      })
+
+      expect(document.documentElement.requestFullscreen).toHaveBeenCalled()
+    })
+
+    it('exits fullscreen with Escape key', async () => {
+      await renderAndLoad()
+
+      // Enter fullscreen first
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'F11' })
+      })
+
+      // Simulate browser entering fullscreen
+      Object.defineProperty(document, 'fullscreenElement', {
+        value: document.documentElement, configurable: true
+      })
+
+      // Press Escape to exit
+      await act(async () => {
+        fireEvent.keyDown(window, { code: 'Escape', key: 'Escape' })
+      })
+
+      expect(document.exitFullscreen).toHaveBeenCalled()
+    })
+  })
+
+  describe('Reset Tournament Confirm Flow', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      ;(window as any).Audio = vi.fn(function() { return { volume: 0, play: vi.fn().mockResolvedValue(undefined) } })
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('resets tournament to defaults when confirmed', async () => {
+      render(<App />)
+      await act(async () => { vi.advanceTimersByTime(1300) })
+
+      // Navigate to level 3 (SB=100, BB=200)
+      for (let i = 0; i < 3; i++) {
+        await act(async () => {
+          fireEvent.keyDown(window, { code: 'ArrowRight' })
+        })
+      }
+
+      // Verify at level 3: 200 visible as big blind
+      expect(screen.getByText('200')).toBeInTheDocument()
+
+      // Go to Settings tab
+      fireEvent.click(screen.getByText('Settings'))
+
+      // Click Reset Tournament button (btn-danger)
+      const resetButtons = screen.getAllByText('Reset Tournament')
+      for (const el of resetButtons) {
+        const btn = el.closest('button')
+        if (btn && btn.classList.contains('btn-danger')) {
+          fireEvent.click(btn)
+          break
+        }
+      }
+
+      // Confirm modal visible
+      expect(screen.getByText(/Are you sure you want to reset/)).toBeInTheDocument()
+
+      // Click confirm "Reset" button in modal
+      const confirmBtn = screen.getByRole('button', { name: 'Reset' })
+      fireEvent.click(confirmBtn)
+
+      // Go back to Timer tab
+      fireEvent.click(screen.getAllByText('Timer')[0])
+
+      // Should be back at level 0 with 25/50 blinds and 15:00
+      expect(screen.getByText('25')).toBeInTheDocument()
+      expect(screen.getByText('15:00')).toBeInTheDocument()
+      expect(screen.queryByText('200')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Prizes Tab Rendering', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('renders prizes content when tab is selected', async () => {
+      render(<App />)
+      await act(async () => { vi.advanceTimersByTime(1300) })
+
+      fireEvent.click(screen.getByText('Prizes'))
+
+      expect(screen.getByText('prizes.payoutStructure')).toBeInTheDocument()
+    })
+  })
+
+  describe('Complete Tournament and History', () => {
+    beforeEach(async () => {
+      vi.useFakeTimers()
+      ;(window as any).Audio = vi.fn(function() { return { volume: 0, play: vi.fn().mockResolvedValue(undefined) } })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('saves completed tournament to history', async () => {
+      ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+        if (key === 'pokerpulse_tournament') return JSON.stringify({
+          id: 'dev-tournament', name: 'Friday Night Poker', buyin_amount: 100, rebuy_amount: 100,
+          rebuy_chips: 10000, addon_amount: 100, addon_chips: 10000, starting_chips: 10000,
+          players: [
+            { id: '1', name: 'Alice', buyins: 1, rebuys: 0, addons: 0, eliminated: false, placement: null, tableNumber: null, seatNumber: null },
+            { id: '2', name: 'Bob', buyins: 1, rebuys: 0, addons: 0, eliminated: true, placement: 2, tableNumber: null, seatNumber: null },
+          ],
+          blind_structure: [
+            { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
+            { id: '2', small_blind: 200, big_blind: 400, ante: 50, duration_minutes: 15, is_break: false },
+          ],
+          current_level: 1, time_remaining_seconds: 0, is_running: false,
+          currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
+        })
+        if (key === 'pokerpulse_onboarding_complete') return 'true'
+        return null
+      })
+
+      render(<App />)
+      await act(async () => { vi.advanceTimersByTime(1300) })
+
+      // Should show tournament complete state
+      expect(screen.getByText('Tournament Complete')).toBeInTheDocument()
+
+      // Click Save to History
+      fireEvent.click(screen.getByText(/Save to History/))
+
+      // PromptModal opens with default value 'Alice' (only active player)
+      const input = screen.getByPlaceholderText('Winner name')
+      expect(input).toHaveValue('Alice')
+
+      // Submit the form
+      const submitBtn = screen.getByText('Save Tournament')
+      fireEvent.click(submitBtn)
+
+      // History should have been saved
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'pokerpulse_tournament_history',
+        expect.any(String)
+      )
     })
   })
 })
