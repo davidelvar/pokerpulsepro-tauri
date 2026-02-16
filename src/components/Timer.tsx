@@ -136,7 +136,7 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
                   : 'bg-themed-tertiary text-themed-secondary'
               }
             `}>
-              {isBreak ? `☕ ${t('timer.break')}` : isFinalLevel ? `🏆 ${t('timer.finalLevel')}` : t('timer.levelOf', { current: tournament.current_level + 1, total: tournament.blind_structure.length })}
+              {isBreak ? <><svg className="inline w-6 h-6 mb-1 mr-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19h18v2H2v-2zm2-4h2v3H4v-3zm4 0h2v3H8v-3zm4 0h2v3h-2v-3zm-9-6h14v6c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9h0zm16 0h2c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2h-2V9zm0 4h2v-2h-2v2zM2 7h16l-1-4H3L2 7z"/></svg>{t('timer.break')}</> : isFinalLevel ? `🏆 ${t('timer.finalLevel')}` : t('timer.levelOf', { current: tournament.current_level + 1, total: tournament.blind_structure.length })}
             </div>
 
             {/* Timer */}
@@ -181,7 +181,7 @@ export function Timer({ tournament, toggleTimer, nextLevel, prevLevel, addTime, 
               <div className="mt-6 card px-6 py-4 inline-block">
                 <div className="text-themed-muted text-xs mb-2 uppercase tracking-wide text-center">{t('timer.nextLevel')}</div>
                 {nextBlind.is_break ? (
-                  <div className="text-amber-400 text-xl font-semibold text-center">☕ {t('timer.break')}</div>
+                  <div className="text-amber-400 text-xl font-semibold text-center flex items-center justify-center gap-1"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19h18v2H2v-2zm2-4h2v3H4v-3zm4 0h2v3H8v-3zm4 0h2v3h-2v-3zm-9-6h14v6c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9h0zm16 0h2c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2h-2V9zm0 4h2v-2h-2v2zM2 7h16l-1-4H3L2 7z"/></svg> {t('timer.break')}</div>
                 ) : (
                   <div className="flex items-center justify-center gap-4">
                     <div className="text-center">

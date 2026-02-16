@@ -828,7 +828,7 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
                     <div className="flex items-center gap-2">
                       <span className="drag-handle text-themed-muted hover:text-themed-primary cursor-grab active:cursor-grabbing text-lg select-none">⋮⋮</span>
                       {level.is_break ? (
-                        <span className="text-amber-400">☕</span>
+                        <span className="text-amber-400"><svg className="inline w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19h18v2H2v-2zm2-4h2v3H4v-3zm4 0h2v3H8v-3zm4 0h2v3h-2v-3zm-9-6h14v6c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9h0zm16 0h2c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2h-2V9zm0 4h2v-2h-2v2zM2 7h16l-1-4H3L2 7z"/></svg></span>
                       ) : (
                         <span className={isCurrent ? 'text-accent font-semibold' : 'text-themed-secondary'}>
                           {levelNumber}

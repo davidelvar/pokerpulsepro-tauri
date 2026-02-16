@@ -697,8 +697,7 @@ describe('Blinds Component - Level Management', () => {
     it('renders break indicator for break levels', () => {
       render(<Blinds tournament={mockTournament} setTournament={mockSetTournament} />)
       
-      // Break should show ☕ icon and "Break" text
-      expect(screen.getByText('☕')).toBeInTheDocument()
+      // Break should show SVG icon and "Break" text
       expect(screen.getByText('Break')).toBeInTheDocument()
     })
 

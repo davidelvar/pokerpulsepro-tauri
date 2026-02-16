@@ -178,7 +178,7 @@ export function ProjectorView() {
           }
         `}>
           {isBreak 
-            ? `☕ ${t('timer.break')}` 
+            ? <><svg className="inline w-[3vw] h-[3vw] mb-[0.5vw] mr-[0.5vw]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19h18v2H2v-2zm2-4h2v3H4v-3zm4 0h2v3H8v-3zm4 0h2v3h-2v-3zm-9-6h14v6c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9h0zm16 0h2c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2h-2V9zm0 4h2v-2h-2v2zM2 7h16l-1-4H3L2 7z"/></svg>{t('timer.break')}</> 
             : isFinalLevel 
               ? `🏆 ${t('timer.finalLevel')}` 
               : t('timer.levelOf', { current: tournament.current_level + 1, total: tournament.blind_structure.length })
@@ -232,7 +232,7 @@ export function ProjectorView() {
         {/* Break Message */}
         {isBreak && (
           <div className="mt-[4vh] text-center">
-            <div className="text-[4vw] text-amber-400 font-semibold">☕ {t('projector.breakTime')}</div>
+            <div className="text-[4vw] text-amber-400 font-semibold flex items-center justify-center gap-[0.5vw]"><svg className="w-[4vw] h-[4vw]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19h18v2H2v-2zm2-4h2v3H4v-3zm4 0h2v3H8v-3zm4 0h2v3h-2v-3zm-9-6h14v6c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9h0zm16 0h2c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2h-2V9zm0 4h2v-2h-2v2zM2 7h16l-1-4H3L2 7z"/></svg> {t('projector.breakTime')}</div>
             <div className="text-[2vw] text-gray-400 mt-[1vh]">{t('projector.breakMessage')}</div>
           </div>
         )}
@@ -254,7 +254,7 @@ export function ProjectorView() {
             <div className="text-center">
               <div className="text-[1.5vw] text-gray-400 uppercase tracking-wider mb-[1vh]">{t('timer.nextLevel')}</div>
               {nextBlind.is_break ? (
-                <div className="text-[3vw] text-amber-400 font-semibold">☕ {t('timer.break')}</div>
+                <div className="text-[3vw] text-amber-400 font-semibold flex items-center justify-center gap-[0.5vw]"><svg className="w-[3vw] h-[3vw]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19h18v2H2v-2zm2-4h2v3H4v-3zm4 0h2v3H8v-3zm4 0h2v3h-2v-3zm-9-6h14v6c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9h0zm16 0h2c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2h-2V9zm0 4h2v-2h-2v2zM2 7h16l-1-4H3L2 7z"/></svg> {t('timer.break')}</div>
               ) : (
                 <div className="flex items-center gap-[3vw] text-[3vw]">
                   <span className="text-gray-300 font-bold">{nextBlind.small_blind.toLocaleString()}</span>

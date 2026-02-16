@@ -599,7 +599,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-themed-primary flex flex-col border border-themed-subtle">
+    <div className="h-screen overflow-hidden bg-themed-primary flex flex-col border border-themed-subtle">
       <Header 
         tournament={tournament} 
         setTournament={setTournament}

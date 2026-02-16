@@ -27,18 +27,14 @@ export const api = {
 export const mockApi = {
   tournament: {
     id: 'dev-tournament',
-    name: 'Friday Night Poker',
+    name: '',
     buyin_amount: 100,
     rebuy_amount: 100,
     rebuy_chips: 10000,
     addon_amount: 100,
     addon_chips: 10000,
     starting_chips: 10000,
-    players: [
-      { id: '1', name: 'Alice', buyins: 1, rebuys: 0, addons: 0, eliminated: false, placement: null, tableNumber: null, seatNumber: null },
-      { id: '2', name: 'Bob', buyins: 1, rebuys: 1, addons: 0, eliminated: false, placement: null, tableNumber: null, seatNumber: null },
-      { id: '3', name: 'Charlie', buyins: 1, rebuys: 0, addons: 0, eliminated: true, placement: 3, tableNumber: null, seatNumber: null },
-    ],
+    players: [],
     blind_structure: [
       { id: '1', small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 15, is_break: false },
       { id: '2', small_blind: 50, big_blind: 100, ante: 0, duration_minutes: 15, is_break: false },

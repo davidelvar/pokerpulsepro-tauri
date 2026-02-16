@@ -141,15 +141,15 @@ describe('API Module', () => {
     it('tournament has required properties', () => {
       const { tournament } = mockApi
       expect(tournament.id).toBe('dev-tournament')
-      expect(tournament.name).toBe('Friday Night Poker')
+      expect(tournament.name).toBe('')
       expect(tournament.buyin_amount).toBe(100)
       expect(tournament.starting_chips).toBe(10000)
       expect(tournament.currency_symbol).toBe('$')
     })
 
-    it('tournament has players array', () => {
+    it('tournament has empty players array', () => {
       expect(Array.isArray(mockApi.tournament.players)).toBe(true)
-      expect(mockApi.tournament.players.length).toBe(3)
+      expect(mockApi.tournament.players.length).toBe(0)
     })
 
     it('tournament has blind structure', () => {
@@ -161,22 +161,6 @@ describe('API Module', () => {
       expect(mockApi.tournament.current_level).toBe(0)
       expect(mockApi.tournament.time_remaining_seconds).toBe(900)
       expect(mockApi.tournament.is_running).toBe(false)
-    })
-
-    it('players have correct structure', () => {
-      const player = mockApi.tournament.players[0]
-      expect(player.id).toBeDefined()
-      expect(player.name).toBe('Alice')
-      expect(player.buyins).toBe(1)
-      expect(player.rebuys).toBe(0)
-      expect(player.eliminated).toBe(false)
-    })
-
-    it('has an eliminated player', () => {
-      const eliminatedPlayer = mockApi.tournament.players.find(p => p.eliminated)
-      expect(eliminatedPlayer).toBeDefined()
-      expect(eliminatedPlayer?.name).toBe('Charlie')
-      expect(eliminatedPlayer?.placement).toBe(3)
     })
 
     it('blind structure includes a break', () => {
