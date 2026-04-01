@@ -87,7 +87,7 @@ export function playSound(type: 'levelChange' | 'warning' | 'break'): void {
 }
 
 // GitHub update checker
-export const CURRENT_VERSION = '1.2.1'
+export const CURRENT_VERSION = '1.2.2'
 const GITHUB_REPO = 'davidelvar/pokerpulsepro-tauri'
 const UPDATE_CHECK_KEY = 'pokerpulse_update_check'
 const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000 // 1 hour in milliseconds
@@ -123,7 +123,13 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
     if (cached) {
       const { timestamp, data } = JSON.parse(cached)
       if (Date.now() - timestamp < UPDATE_CHECK_INTERVAL) {
-        return data
+        // Invalidate cache if the cached "update" is no longer newer than current version
+        // (e.g., user upgraded the app but cache still has old update info)
+        if (data.updateAvailable && !compareVersions(CURRENT_VERSION, data.latestVersion)) {
+          localStorage.removeItem(UPDATE_CHECK_KEY)
+        } else {
+          return data
+        }
       }
     }
 
