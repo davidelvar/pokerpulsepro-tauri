@@ -2,10 +2,14 @@
 
 A beautiful, minimalistic poker tournament timer and manager built with Tauri (Rust) + React + TypeScript.
 
+🌐 **[pokerpulsepro.com](https://pokerpulsepro.com)**
+
 ![Version](https://img.shields.io/badge/Version-1.2.0-blue)
 ![PokerPulsePro](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Tests](https://img.shields.io/badge/Tests-926%20passing-brightgreen)
+
+![PokerPulsePro Preview](docs/preview.png)
 
 ## ✨ Features
 
