@@ -203,14 +203,25 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
 
 // Download and install update using Tauri updater
 export async function downloadAndInstallUpdate(updateInfo: UpdateInfo): Promise<boolean> {
-  if (!isTauri || !updateInfo.tauriUpdate) {
-    // Not in Tauri or no update object - open website
+  if (!isTauri) {
+    // Not in Tauri - open website
     window.open(updateInfo.downloadUrl, '_blank')
     return false
   }
 
   try {
-    const update = updateInfo.tauriUpdate
+    // Always get a fresh update object (cached updateInfo won't have tauriUpdate)
+    let update = updateInfo.tauriUpdate
+    if (!update) {
+      const { check } = await import('@tauri-apps/plugin-updater')
+      update = await check()
+    }
+
+    if (!update) {
+      // No update found - open website as fallback
+      window.open(updateInfo.downloadUrl, '_blank')
+      return false
+    }
     
     // Download the update
     await update.downloadAndInstall()
