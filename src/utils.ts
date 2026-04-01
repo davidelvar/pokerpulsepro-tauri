@@ -87,7 +87,7 @@ export function playSound(type: 'levelChange' | 'warning' | 'break'): void {
 }
 
 // GitHub update checker
-export const CURRENT_VERSION = '1.2.0'
+export const CURRENT_VERSION = '1.2.1'
 const GITHUB_REPO = 'davidelvar/pokerpulsepro-tauri'
 const UPDATE_CHECK_KEY = 'pokerpulse_update_check'
 const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000 // 1 hour in milliseconds
