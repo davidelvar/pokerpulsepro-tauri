@@ -4,7 +4,7 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
 
 🌐 **[pokerpulsepro.com](https://pokerpulsepro.com)**
 
-![Version](https://img.shields.io/badge/Version-1.2.0-blue)
+![Version](https://img.shields.io/badge/Version-1.2.1-blue)
 ![PokerPulsePro](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Tests](https://img.shields.io/badge/Tests-926%20passing-brightgreen)
@@ -372,6 +372,13 @@ MIT License - feel free to use this for your home games!
 Contributions welcome! Please open an issue or PR.
 
 ## 📋 Changelog
+
+### v1.2.1
+- **🔧 Fix Update Button** - In-app "Download Update" now works reliably
+  - Fixed issue where cached update info lost the download object
+  - Re-checks with Tauri updater when user clicks Download Update
+- **📄 README** - Added app preview image and homepage link
+- **⚙️ CI** - Updated GitHub Actions to Node.js 22 and actions v5
 
 ### v1.2.0 
 - **🎰 Chip Manager** - Define your physical chip inventory and get smart suggestions
