@@ -369,7 +369,7 @@ Contributions welcome! Please open an issue or PR.
 
 ## 📋 Changelog
 
-### v1.2.0 (Current Working Version)
+### v1.2.0 
 - **🎰 Chip Manager** - Define your physical chip inventory and get smart suggestions
   - Add chips with denomination, quantity, color, and label
   - Quick setup presets: Standard (5 colors), Small Set (4), Large Set (6)
