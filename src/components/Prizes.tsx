@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Tournament } from '../types'
 import { calculatePrizePool, formatCurrency, getEliminatedPlayers, generateId } from '../utils'
@@ -20,6 +20,7 @@ interface SavedPrizeTemplate {
 // Check if running in Tauri
 const isTauri = typeof window !== 'undefined' && '__TAURI__' in window
 const STORAGE_KEY_PRIZE_TEMPLATES = 'pokerpulse_prize_templates'
+const STORAGE_KEY_PAYOUT_CONFIG = 'pokerpulse_payout_config'
 
 const PAYOUT_TEMPLATES: Record<number, number[]> = {
   2: [65, 35],
@@ -29,6 +30,24 @@ const PAYOUT_TEMPLATES: Record<number, number[]> = {
   6: [35, 22, 15, 12, 9, 7],
   7: [32, 20, 14, 11, 9, 8, 6],
   8: [30, 18, 13, 10, 9, 8, 7, 5],
+}
+
+function generateDefaultDistribution(places: number): number[] {
+  if (places <= 0) return [100]
+  if (PAYOUT_TEMPLATES[places]) return [...PAYOUT_TEMPLATES[places]]
+  // Generate a top-heavy distribution for any number of places
+  const weights = Array.from({ length: places }, (_, i) => Math.pow(places - i, 1.5))
+  const totalWeight = weights.reduce((a, b) => a + b, 0)
+  const raw = weights.map(w => (w / totalWeight) * 100)
+  // Round to integers, adjust last place to ensure sum = 100
+  const rounded = raw.map(v => Math.floor(v))
+  // Ensure minimum 1% per place
+  for (let i = 0; i < rounded.length; i++) {
+    if (rounded[i] < 1) rounded[i] = 1
+  }
+  const diff = 100 - rounded.reduce((a, b) => a + b, 0)
+  rounded[0] += diff
+  return rounded
 }
 
 export function Prizes({ tournament }: PrizesProps) {
@@ -44,7 +63,7 @@ export function Prizes({ tournament }: PrizesProps) {
   const prizePool = calculatePrizePool(tournament)
   const eliminatedPlayers = getEliminatedPlayers(tournament.players)
 
-  // Load saved templates from localStorage
+  // Load saved templates and payout config from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_PRIZE_TEMPLATES)
@@ -54,10 +73,36 @@ export function Prizes({ tournament }: PrizesProps) {
     } catch (e) {
       console.error('Failed to load saved prize templates:', e)
     }
+    try {
+      const config = localStorage.getItem(STORAGE_KEY_PAYOUT_CONFIG)
+      if (config) {
+        const { paidPlaces: pp, percentages: pcts } = JSON.parse(config)
+        if (pp && pcts) {
+          setPaidPlaces(pp)
+          setPercentages(pcts)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load payout config:', e)
+    }
   }, [])
 
+  // Persist payout config whenever it changes
   useEffect(() => {
-    const template = PAYOUT_TEMPLATES[paidPlaces] || PAYOUT_TEMPLATES[3]
+    try {
+      localStorage.setItem(STORAGE_KEY_PAYOUT_CONFIG, JSON.stringify({ paidPlaces, percentages }))
+    } catch (e) {
+      console.error('Failed to save payout config:', e)
+    }
+  }, [paidPlaces, percentages])
+
+  const initialLoadRef = useRef(true)
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false
+      return
+    }
+    const template = generateDefaultDistribution(paidPlaces)
     setPercentages(template)
     setActiveTemplate(null) // Clear active template when changing places
   }, [paidPlaces])
@@ -78,7 +123,116 @@ export function Prizes({ tournament }: PrizesProps) {
     amount: Math.floor(prizePool * pct / 100),
   }))
 
-  const placeLabels = ['🥇', '🥈', '🥉', '4th', '5th', '6th', '7th', '8th']
+  const basePlaceLabels = ['🥇', '🥈', '🥉']
+  const placeLabels = Array.from({ length: paidPlaces }, (_, i) => 
+    i < basePlaceLabels.length ? basePlaceLabels[i] : `${i + 1}th`
+  )
+  const basePlaceColors = [
+    'rgb(234, 179, 8)',    // gold
+    'rgb(148, 163, 184)',  // silver
+    'rgb(194, 120, 62)',   // bronze
+    'rgb(96, 165, 250)',   // blue
+    'rgb(168, 85, 247)',   // purple
+    'rgb(52, 211, 153)',   // emerald
+    'rgb(251, 146, 60)',   // orange
+    'rgb(244, 114, 182)',  // pink
+  ]
+  const placeColors = Array.from({ length: paidPlaces }, (_, i) => {
+    if (i < basePlaceColors.length) return basePlaceColors[i]
+    // Generate distinct hue-shifted colors for places beyond 8
+    const hue = (i * 137.508) % 360 // golden angle for good distribution
+    return `hsl(${hue}, 65%, 55%)`
+  })
+  const placeColorsBg = placeColors.map(c => {
+    if (c.startsWith('rgb(')) return c.replace('rgb(', 'rgba(').replace(')', ', 0.15)')
+    // For hsl colors, add alpha
+    return c.replace('hsl(', 'hsla(').replace(')', ', 0.15)')
+  })
+
+  const stackedBarRef = useRef<HTMLDivElement>(null)
+  const dragIndexRef = useRef<number | null>(null)
+
+  // Update percentage with auto-balancing: adjusts the next place to keep total at 100%
+  const updatePercentageBalanced = useCallback((index: number, newValue: number) => {
+    const clamped = Math.max(1, Math.min(99, Math.round(newValue)))
+    const newPercentages = [...percentages]
+    const oldValue = newPercentages[index]
+    const diff = clamped - oldValue
+    
+    if (diff === 0) return
+    
+    newPercentages[index] = clamped
+    
+    // Distribute the difference across other places proportionally
+    const otherIndices = newPercentages
+      .map((_, i) => i)
+      .filter(i => i !== index)
+    
+    const otherTotal = otherIndices.reduce((sum, i) => sum + newPercentages[i], 0)
+    
+    if (otherTotal > 0) {
+      let remaining = -diff
+      for (let i = 0; i < otherIndices.length; i++) {
+        const oi = otherIndices[i]
+        if (i === otherIndices.length - 1) {
+          // Last one gets the remainder
+          newPercentages[oi] = Math.max(1, newPercentages[oi] + remaining)
+        } else {
+          const share = Math.round(remaining * (newPercentages[oi] / otherTotal))
+          const adjusted = Math.max(1, newPercentages[oi] + share)
+          remaining -= (adjusted - newPercentages[oi])
+          newPercentages[oi] = adjusted
+        }
+      }
+    }
+    
+    // Ensure total is exactly 100
+    const total = newPercentages.reduce((s, p) => s + p, 0)
+    if (total !== 100) {
+      // Find the largest other place to absorb the rounding error
+      const largestOther = otherIndices.reduce((max, i) => 
+        newPercentages[i] > newPercentages[max] ? i : max, otherIndices[0])
+      newPercentages[largestOther] += (100 - total)
+    }
+    
+    // Validate all are >= 1
+    if (newPercentages.every(p => p >= 1)) {
+      setPercentages(newPercentages)
+      setActiveTemplate(null)
+    }
+  }, [percentages])
+
+  // Stacked bar drag handlers
+  const handleDividerMouseDown = useCallback((dividerIndex: number) => (e: React.MouseEvent) => {
+    e.preventDefault()
+    dragIndexRef.current = dividerIndex
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (dragIndexRef.current === null || !stackedBarRef.current) return
+      const rect = stackedBarRef.current.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const totalWidth = rect.width
+      const overallPercent = (x / totalWidth) * 100
+      
+      const idx = dragIndexRef.current
+      // Sum of all places before this divider
+      const sumBefore = percentages.slice(0, idx).reduce((s, p) => s + p, 0)
+      const newValue = Math.round(overallPercent - sumBefore)
+      
+      if (newValue >= 1 && newValue <= 98) {
+        updatePercentageBalanced(idx, newValue)
+      }
+    }
+    
+    const handleMouseUp = () => {
+      dragIndexRef.current = null
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [percentages, updatePercentageBalanced])
 
   // Save current prize structure as a custom template
   const saveAsTemplate = () => {
@@ -201,7 +355,7 @@ export function Prizes({ tournament }: PrizesProps) {
   // Clear active template and reset to default
   const clearActiveTemplate = () => {
     setActiveTemplate(null)
-    const template = PAYOUT_TEMPLATES[paidPlaces] || PAYOUT_TEMPLATES[3]
+    const template = generateDefaultDistribution(paidPlaces)
     setPercentages(template)
   }
 
@@ -407,7 +561,7 @@ export function Prizes({ tournament }: PrizesProps) {
           {/* Places Selector */}
           <div className="mb-6">
             <label className="text-sm text-themed-muted mb-2 block">{t('prizes.paidPlaces')}</label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               {[2, 3, 4, 5, 6, 7, 8].map((n) => (
                 <button
                   key={n}
@@ -421,43 +575,159 @@ export function Prizes({ tournament }: PrizesProps) {
                   {n}
                 </button>
               ))}
+              <div className="flex items-center gap-1 ml-2">
+                <input
+                  type="number"
+                  min={2}
+                  max={50}
+                  value={paidPlaces}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value)
+                    if (v >= 2 && v <= 50) setPaidPlaces(v)
+                  }}
+                  aria-label="custom-places"
+                  className="w-16 h-10 rounded-lg bg-themed-tertiary text-themed-primary text-center font-medium border border-themed-border focus:border-accent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Percentage Inputs */}
-          <div className="space-y-3">
-            {payouts.map((payout, index) => (
-              <div key={index} className="flex items-center gap-4">
-                <span className="w-8 text-lg">{placeLabels[index]}</span>
-                <div className="flex-1 flex items-center gap-3">
-                  <input
-                    type="number"
-                    value={percentages[index]}
-                    onChange={(e) => updatePercentage(index, parseFloat(e.target.value) || 0)}
-                    className="input w-20 text-center"
-                    min="0"
-                    max="100"
-                    step="1"
-                  />
-                  <span className="text-themed-muted">%</span>
-                  <div className="flex-1 h-2 bg-themed-tertiary rounded-full overflow-hidden">
+          {/* Interactive Stacked Bar */}
+          <div className="mb-6">
+            <label className="text-sm text-themed-muted mb-2 block">{t('prizes.dragToAdjust')}</label>
+            <div 
+              ref={stackedBarRef}
+              className="relative h-12 rounded-xl overflow-hidden flex select-none"
+              style={{ cursor: 'default' }}
+            >
+              {payouts.map((payout, index) => (
+                <div
+                  key={index}
+                  className="relative h-full flex items-center justify-center group"
+                  style={{
+                    width: `${percentages[index]}%`,
+                    backgroundColor: placeColors[index],
+                    transition: dragIndexRef.current !== null ? 'none' : 'width 0.2s ease',
+                  }}
+                >
+                  {/* Label inside segment */}
+                  {percentages[index] >= 8 && (
+                    <span className="text-xs font-bold text-white drop-shadow-md pointer-events-none">
+                      {percentages[index]}%
+                    </span>
+                  )}
+                  
+                  {/* Draggable divider between segments */}
+                  {index < payouts.length - 1 && (
                     <div
-                      className="h-full bg-accent transition-all duration-300"
-                      style={{ width: `${percentages[index]}%` }}
+                      onMouseDown={handleDividerMouseDown(index)}
+                      className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize z-10 flex items-center justify-center hover:bg-white/30 active:bg-white/40"
+                      style={{ transform: 'translateX(50%)' }}
+                    >
+                      <div className="w-0.5 h-6 bg-white/60 rounded-full" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Stacked bar legend */}
+            <div className="flex flex-wrap gap-3 mt-2">
+              {payouts.map((_, index) => (
+                <div key={index} className="flex items-center gap-1.5 text-xs text-themed-muted">
+                  <div 
+                    className="w-2.5 h-2.5 rounded-sm" 
+                    style={{ backgroundColor: placeColors[index] }} 
+                  />
+                  {placeLabels[index]}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Per-place sliders + inputs */}
+          <div className="space-y-4">
+            {payouts.map((payout, index) => {
+              const sliderMin = 1
+              const sliderMax = Math.min(99, percentages[index] + (100 - totalPercentage) + percentages[index])
+              const fillPercent = ((percentages[index] - sliderMin) / (sliderMax - sliderMin)) * 100
+              return (
+              <div key={index}>
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="w-8 text-lg">{placeLabels[index]}</span>
+                  <div className="flex-1">
+                    <input
+                      type="range"
+                      min={sliderMin}
+                      max={sliderMax}
+                      value={percentages[index]}
+                      onChange={(e) => updatePercentageBalanced(index, parseInt(e.target.value))}
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                      style={{
+                        background: `linear-gradient(to right, ${placeColors[index]} 0%, ${placeColors[index]} ${fillPercent}%, var(--color-themed-tertiary, #374151) ${fillPercent}%, var(--color-themed-tertiary, #374151) 100%)`,
+                        accentColor: placeColors[index],
+                        color: placeColors[index],
+                      }}
                     />
                   </div>
+                  <div className="flex items-center bg-themed-secondary rounded-lg border border-themed overflow-hidden">
+                    <input
+                      type="number"
+                      value={percentages[index]}
+                      onChange={(e) => updatePercentageBalanced(index, parseInt(e.target.value) || 1)}
+                      className="w-12 text-center text-sm py-1.5 bg-transparent text-themed border-none outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      min="1"
+                      max="99"
+                      step="1"
+                    />
+                    <span className="text-themed-muted text-sm pr-2 select-none">%</span>
+                    <div className="flex flex-col border-l border-themed bg-themed-tertiary">
+                      <button
+                        type="button"
+                        onClick={() => updatePercentageBalanced(index, Math.min(99, percentages[index] + 1))}
+                        className="px-2 py-0.5 hover:bg-themed-hover text-themed-muted hover:text-themed transition-colors"
+                        tabIndex={-1}
+                      >
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 10 6" stroke="currentColor" strokeWidth="2">
+                          <path d="M1 5l4-4 4 4" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updatePercentageBalanced(index, Math.max(1, percentages[index] - 1))}
+                        className="px-2 py-0.5 hover:bg-themed-hover text-themed-muted hover:text-themed transition-colors border-t border-themed"
+                        tabIndex={-1}
+                      >
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 10 6" stroke="currentColor" strokeWidth="2">
+                          <path d="M1 1l4 4 4-4" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <span 
+                    className="w-24 text-right font-semibold text-sm"
+                    style={{ color: placeColors[index] }}
+                  >
+                    {formatCurrency(payout.amount, tournament.currency_symbol)}
+                  </span>
                 </div>
-                <span className="w-24 text-right font-semibold text-accent">
-                  {formatCurrency(payout.amount, tournament.currency_symbol)}
-                </span>
               </div>
-            ))}
+            )})}
           </div>
 
           {/* Validation */}
-          <div className={`mt-4 text-sm ${isValid ? 'text-accent' : 'text-red-400'}`}>
-            {t('prizes.total')}: {totalPercentage.toFixed(1)}%
-            {!isValid && ` (${t('prizes.mustEqual100')})`}
+          <div className={`mt-4 pt-3 border-t border-themed flex items-center justify-between`}>
+            <span className={`text-sm font-medium ${isValid ? 'text-accent' : 'text-red-400'}`}>
+              {t('prizes.total')}: {totalPercentage.toFixed(0)}%
+              {!isValid && ` (${t('prizes.mustEqual100')})`}
+            </span>
+            {isValid && (
+              <span className="text-xs text-accent flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {t('prizes.valid')}
+              </span>
+            )}
           </div>
         </div>
 

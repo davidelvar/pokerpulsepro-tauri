@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Tournament } from '../types'
+import type { TimeFormat } from '../types'
 import { calculatePrizePool, formatCurrency, getActivePlayers, UpdateInfo, CURRENT_VERSION, downloadAndInstallUpdate } from '../utils'
 
 interface HeaderProps {
@@ -11,9 +12,10 @@ interface HeaderProps {
   updateInfo?: UpdateInfo | null
   isProjectorOpen?: boolean
   onToggleProjector?: () => void
+  timeFormat?: TimeFormat
 }
 
-export function Header({ tournament, setTournament, isFullscreen, toggleFullscreen, updateInfo, isProjectorOpen, onToggleProjector }: HeaderProps) {
+export function Header({ tournament, setTournament, isFullscreen, toggleFullscreen, updateInfo, isProjectorOpen, onToggleProjector, timeFormat = '24h' }: HeaderProps) {
   const { t } = useTranslation()
   const [isUpdating, setIsUpdating] = useState(false)
   const prizePool = calculatePrizePool(tournament)
@@ -46,7 +48,7 @@ export function Header({ tournament, setTournament, isFullscreen, toggleFullscre
   }, [])
 
   const formatClockTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })
   }
 
   return (

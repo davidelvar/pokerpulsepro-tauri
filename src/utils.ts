@@ -1,4 +1,4 @@
-import type { Tournament, Player } from './types'
+import type { Tournament, Player, BlindLevel, PhysicalChip } from './types'
 
 export function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -389,5 +389,52 @@ export function getNextAvailableSeat(players: Player[], tableNumber: number, sea
     }
   }
   return null
+}
+
+export interface ColorUpEntry {
+  chipValue: number
+  color: string
+  borderColor: string
+  textColor: string
+  levelIndex: number
+  smallBlind: number
+  bigBlind: number
+}
+
+export function calculateColorUpSchedule(
+  chips: PhysicalChip[],
+  blindStructure: BlindLevel[]
+): ColorUpEntry[] {
+  const sorted = [...chips].sort((a, b) => a.value - b.value)
+  const schedule: ColorUpEntry[] = []
+
+  for (let c = 0; c < sorted.length - 1; c++) {
+    const chip = sorted[c]
+    const nextChip = sorted[c + 1]
+    if (!nextChip) continue
+
+    for (let i = 0; i < blindStructure.length; i++) {
+      const level = blindStructure[i]
+      if (level.is_break) continue
+
+      const smallBlindOk = level.small_blind >= nextChip.value
+      const anteOk = level.ante === 0 || level.ante >= nextChip.value
+
+      if (smallBlindOk && anteOk) {
+        schedule.push({
+          chipValue: chip.value,
+          color: chip.color,
+          borderColor: chip.borderColor,
+          textColor: chip.textColor,
+          levelIndex: i,
+          smallBlind: level.small_blind,
+          bigBlind: level.big_blind,
+        })
+        break
+      }
+    }
+  }
+
+  return schedule
 }
 

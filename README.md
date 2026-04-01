@@ -5,7 +5,7 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
 ![Version](https://img.shields.io/badge/Version-1.2.0-blue)
 ![PokerPulsePro](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Tests](https://img.shields.io/badge/Tests-928%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-926%20passing-brightgreen)
 
 ## ✨ Features
 
@@ -21,6 +21,7 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
   - **Custom Templates** - Save, load, import/export your own prize structures
   - Active template indicator shows which structure is in use
 - **Chip Breakdown** - Visual chip distribution suggestions
+- **Chip Manager** - Define your physical chips and get distribution/color-up advice
 - **Dark Mode** - Beautiful dark theme designed for visibility
 - **Offline First** - Works without internet, data stored locally
 - **Cross-Platform** - Windows, macOS, and Linux support
@@ -29,6 +30,7 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
 - **🔊 Sound Alerts** - Configurable audio alerts between blind levels
   - Built-in sounds: Bell Ring, Evil Laugh
   - **Voice announcements** - Language-specific level change sounds (matches app language)
+  - **Independent voice toggle** - Enable voice alongside any sound type
   - Custom sound file support (WAV, MP3, OGG, M4A)
   - Adjustable volume control
   - **Warning sounds** at 60 and 30 seconds before level change
@@ -89,6 +91,22 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
   - Step-by-step walkthrough of all features
   - Spotlight highlighting on UI elements
   - Accessible anytime from Settings or Help
+- **🎰 Chip Manager** - Physical chip inventory with smart suggestions
+  - Per-player distribution, shortage warnings, color-up schedule
+  - Save/load custom chip sets alongside built-in presets
+  - Color-up notifications on Timer screen (amber "now" / blue "next level")
+- **🏆 Tournament Over Screen** - Automatic final standings when tournament ends
+  - Winner announcement with trophy display and payout table
+  - Save to History, New Tournament, and Undo options
+  - Syncs to Projector with large-format winner display
+- **👥 Quick Players Modal** - Manage players directly from the Timer screen
+  - Eliminate, reinstate, add, or remove players without switching tabs
+- **💰 Payout Dropdown on Timer** - Click Prize Pool card to view payout breakdown
+- **🎨 Interactive Payout Structure** - Redesigned prize distribution
+  - Draggable range sliders with auto-balancing (total stays at 100%)
+  - Custom paid places: any number from 2-50
+- **🕐 Time Format Toggle** - Switch between 12h (AM/PM) and 24h clock
+- **🎯 Show/Hide Ante** - Toggle ante display on Timer and Projector
 
 ## 🚀 Quick Start
 
@@ -253,6 +271,7 @@ Configure in the **Settings** tab:
 - **Add-on Amount & Chips** - Cost and chips for add-ons
 - **Starting Chips** - Quick presets or custom amount
 - **Sound Settings** - Level change sounds, warning beeps, volume
+- **Chip Manager** - Define physical chips, get distribution and color-up advice
 
 ### Data Persistence
 
@@ -305,7 +324,7 @@ npm run test:coverage
 npm run test:watch
 ```
 
-928 tests across 19 test suites with 78% code coverage.
+926 tests across 19 test suites with 78% code coverage.
 
 ### Frontend Only (Web)
 
@@ -350,11 +369,54 @@ Contributions welcome! Please open an issue or PR.
 
 ## 📋 Changelog
 
-### v1.2.0
-- **🔊 Voice Sound Option** - Language-specific level change announcements
-  - Automatically plays in your selected app language
-  - Supports: English, Spanish, German, French, Portuguese, Icelandic
-  - New "Voice" option alongside Bell, Evil Laugh, and Custom sounds
+### v1.2.0 (Current Working Version)
+- **🎰 Chip Manager** - Define your physical chip inventory and get smart suggestions
+  - Add chips with denomination, quantity, color, and label
+  - Quick setup presets: Standard (5 colors), Small Set (4), Large Set (6)
+  - Per-player distribution calculated from starting chips and player count
+  - Shortage warnings when you don't have enough chips
+  - Color-up schedule shows when each denomination can be removed based on blind structure
+  - Color-up notifications on the Timer screen: amber "Color up now" banner at the color-up level, blue "Color up next level" preview one level ahead
+  - Save custom chip sets with names for quick loading
+  - Custom sets persisted alongside built-in presets
+  - Persistent across sessions via localStorage
+- **🔊 Voice Announcements Toggle** - Independent voice announcement control
+  - Dedicated enable/disable toggle separate from level change sound type
+  - Play voice announcements alongside any sound (Bell, Evil Laugh, Custom)
+  - "Test Voice" button to preview in your current language
+  - Voice delayed 500ms to avoid overlap with primary sound
+- **🎨 Improved Payout Structure** - Interactive prize distribution redesign
+  - Visual stacked bar showing all places as colored segments
+  - Draggable range sliders per place with auto-balancing (total stays at 100%)
+  - Custom styled increment/decrement buttons with inline % symbol
+  - Custom paid places: type any number (2-50) beyond the preset 2-8 buttons
+  - Auto-generated top-heavy distributions for custom place counts
+- **🕐 Time Format Toggle** - 12h (AM/PM) or 24h clock display
+  - Toggle in Appearance settings alongside language and theme
+  - Applied to the header clock in real-time
+- **🎯 Show/Hide Ante** - Toggle ante display on timer screen
+  - Option in Tournament Settings to disable ante column
+  - Hides ante from both Timer and Projector views
+- **� Tournament Over Screen** - Automatic final standings when tournament ends
+  - Triggers when 1 or 0 players remain (winner detected or all eliminated)
+  - Winner announcement with trophy display
+  - Final standings table with place medals (🥇🥈🥉) and payouts
+  - Save to History and New Tournament buttons
+  - Undo elimination option if triggered by mistake
+  - Syncs to Projector screen with large-format winner display
+- **👥 Quick Players Modal** - Manage players directly from the Timer screen
+  - Click the Players stat card to open a quick-access modal
+  - Add new players, eliminate active players, reinstate eliminated ones
+  - Active players shown first, eliminated below with strikethrough
+  - No need to switch tabs during gameplay
+- **💰 Payout Dropdown on Timer** - View payout structure without leaving the timer
+  - Click the Prize Pool card to toggle a payout breakdown
+  - Shows each place's percentage and calculated payout amount
+  - Payout config persisted in localStorage and synced with Prizes tab
+- **�🎛️ Settings Layout Optimization** - Better use of screen space
+  - Chip Manager split into 2-column layout (inventory + distribution)
+  - Help & Support and Danger Zone combined side-by-side
+  - Consistent control heights across Appearance section
 - **🎓 Interactive Onboarding** - Guided tutorial for new users
   - Step-by-step walkthrough of all app features
   - Spotlight highlighting shows exactly where each feature is
@@ -379,7 +441,7 @@ Contributions welcome! Please open an issue or PR.
   - Import/Export templates as JSON files for sharing
   - "My Templates" library for quick loading
   - Active template indicator with one-click clear
-  - Supports 2-8 paid places with custom percentages
+  - Supports 2-50 paid places with custom percentages
 - **🔒 Security Hardening** - Content Security Policy (CSP) configuration
   - Restrictive CSP rules in Tauri configuration
   - Limits script, style, image, and network sources
@@ -391,7 +453,7 @@ Contributions welcome! Please open an issue or PR.
   - `aria-expanded` / `aria-haspopup` on dropdown triggers
   - `aria-hidden="true"` on decorative SVG icons
   - Screen reader friendly button labels throughout
-- **🧪 Comprehensive Test Suite** - 928 tests with 78% coverage
+- **🧪 Comprehensive Test Suite** - 926 tests with 78% coverage
   - Vitest + React Testing Library with v8 coverage
   - 19 test files covering all major components
   - Tests for: App, Timer, Players, Blinds, Prizes, Settings, Header, Help, Modal, Navigation, ProjectorView, Onboarding

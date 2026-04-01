@@ -104,6 +104,7 @@ const createMockSoundSettings = (overrides: Partial<SoundSettings> = {}): SoundS
   volume: 0.7,
   soundType: 'bell',
   customSoundPath: null,
+  voiceEnabled: false,
   warningEnabled: false,
   warningAt60: true,
   warningAt30: true,
@@ -114,6 +115,8 @@ const createMockSoundSettings = (overrides: Partial<SoundSettings> = {}): SoundS
 const createMockThemeSettings = (overrides: Partial<ThemeSettings> = {}): ThemeSettings => ({
   mode: 'dark',
   accent: 'emerald',
+  timeFormat: '24h',
+  showAnte: true,
   ...overrides,
 })
 
@@ -146,6 +149,12 @@ describe('Settings Component', () => {
         playTestSound={mockPlayTestSound}
         resetTournament={mockResetTournament}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -542,7 +551,7 @@ describe('Settings Component Advanced', () => {
       enabled: true,
       volume: 0.7,
       soundType: 'bell',
-      customSoundPath: null,
+      customSoundPath: null, voiceEnabled: false,
       warningEnabled: false,
       warningAt60: true,
       warningAt30: true,
@@ -553,6 +562,8 @@ describe('Settings Component Advanced', () => {
     const themeSettings: ThemeSettings = {
       mode: 'dark',
       accent: 'emerald',
+      timeFormat: '24h',
+      showAnte: true,
       ...themeOverrides,
     }
     
@@ -567,6 +578,12 @@ describe('Settings Component Advanced', () => {
         playTestSound={mockPlayTestSound}
         resetTournament={mockResetTournament}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -815,18 +832,21 @@ describe('Settings Data Validation', () => {
       warningAt30: true,
       autoPauseOnBreak: false,
       customSoundPath: null,
+      voiceEnabled: false,
     }
     
     expect(soundSettings.enabled).toBe(true)
     expect(soundSettings.volume).toBeGreaterThanOrEqual(0)
     expect(soundSettings.volume).toBeLessThanOrEqual(1)
-    expect(['bell', 'evil-laugh', 'localized', 'custom']).toContain(soundSettings.soundType)
+    expect(['bell', 'evil-laugh', 'custom']).toContain(soundSettings.soundType)
   })
 
   it('validates theme settings structure', () => {
     const themeSettings: ThemeSettings = {
       mode: 'dark',
       accent: 'emerald',
+      timeFormat: '24h',
+      showAnte: true,
     }
     
     expect(['dark', 'light']).toContain(themeSettings.mode)
@@ -884,7 +904,7 @@ describe('Settings - Localized Sound Option', () => {
       ...tournamentOverrides,
     }
     const soundSettings: SoundSettings = {
-      enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null,
+      enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false,
       warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false,
       ...soundOverrides,
     }
@@ -892,50 +912,28 @@ describe('Settings - Localized Sound Option', () => {
       <Settings
         tournament={tournament} setTournament={mockSetTournament}
         soundSettings={soundSettings} setSoundSettings={mockSetSoundSettings}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={mockSetThemeSettings}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={mockSetThemeSettings}
         playTestSound={mockPlayTestSound} resetTournament={mockResetTournament}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
 
-  it('renders the localized (Voice) sound option button', () => {
-    renderSettings({ enabled: true })
-    expect(screen.getByText('settings.soundLocalized')).toBeInTheDocument()
-  })
-
-  it('selects localized sound type when Voice button is clicked', () => {
-    renderSettings({ enabled: true, soundType: 'bell' })
-    const voiceButton = screen.getByText('settings.soundLocalized').closest('button')!
-    fireEvent.click(voiceButton)
-    expect(mockSetSoundSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ soundType: 'localized' })
-    )
-  })
-
-  it('highlights Voice button when localized sound is selected', () => {
-    renderSettings({ enabled: true, soundType: 'localized' })
-    const voiceButton = screen.getByText('settings.soundLocalized').closest('button')!
-    expect(voiceButton).toHaveClass('bg-accent/20')
-  })
-
-  it('does not highlight Voice button when another sound type is selected', () => {
-    renderSettings({ enabled: true, soundType: 'bell' })
-    const voiceButton = screen.getByText('settings.soundLocalized').closest('button')!
-    expect(voiceButton).not.toHaveClass('bg-accent/20')
-  })
-
-  it('renders all four sound type buttons when sound enabled', () => {
+  it('renders all three sound type buttons when sound enabled', () => {
     renderSettings({ enabled: true })
     expect(screen.getByText('settings.soundBell')).toBeInTheDocument()
     expect(screen.getByText('settings.soundEvilLaugh')).toBeInTheDocument()
-    expect(screen.getByText('settings.soundLocalized')).toBeInTheDocument()
     expect(screen.getByText('settings.soundCustom')).toBeInTheDocument()
   })
 
   it('does not render sound type buttons when sound is disabled', () => {
     renderSettings({ enabled: false })
-    expect(screen.queryByText('settings.soundLocalized')).not.toBeInTheDocument()
     expect(screen.queryByText('settings.soundBell')).not.toBeInTheDocument()
   })
 })
@@ -959,7 +957,7 @@ describe('Settings - Warning Sounds', () => {
       players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
     }
     const soundSettings: SoundSettings = {
-      enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null,
+      enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false,
       warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false,
       ...soundOverrides,
     }
@@ -967,9 +965,15 @@ describe('Settings - Warning Sounds', () => {
       <Settings
         tournament={tournament} setTournament={vi.fn()}
         soundSettings={soundSettings} setSoundSettings={mockSetSoundSettings}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={vi.fn()}
         onShowOnboarding={vi.fn()}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1048,7 +1052,7 @@ describe('Settings - Auto-Pause on Break', () => {
       players: [], currency_symbol: '$', tableCount: 1, seatsPerTable: 9,
     }
     const soundSettings: SoundSettings = {
-      enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null,
+      enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false,
       warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false,
       ...soundOverrides,
     }
@@ -1056,9 +1060,15 @@ describe('Settings - Auto-Pause on Break', () => {
       <Settings
         tournament={tournament} setTournament={vi.fn()}
         soundSettings={soundSettings} setSoundSettings={mockSetSoundSettings}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={vi.fn()}
         onShowOnboarding={vi.fn()}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1103,11 +1113,17 @@ describe('Settings - Keyboard Shortcuts Display', () => {
     return render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
         setSoundSettings={vi.fn()}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={vi.fn()}
         onShowOnboarding={vi.fn()}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1157,11 +1173,17 @@ describe('Settings - Data Management', () => {
     return render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
         setSoundSettings={vi.fn()}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={vi.fn()}
         onShowOnboarding={vi.fn()}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1197,11 +1219,17 @@ describe('Settings - Tournament History with Entries', () => {
     return render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
         setSoundSettings={vi.fn()}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={vi.fn()}
         onShowOnboarding={vi.fn()}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1293,11 +1321,17 @@ describe('Settings - Help & Tutorial Section', () => {
     render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
         setSoundSettings={vi.fn()}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={vi.fn()}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
     expect(screen.getByText('settings.startTutorial')).toBeInTheDocument()
@@ -1316,11 +1350,17 @@ describe('Settings - Help & Tutorial Section', () => {
     render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
         setSoundSettings={vi.fn()}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={vi.fn()}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
     const tutorialButton = screen.getByText('settings.startTutorial').closest('button')!
@@ -1341,10 +1381,15 @@ describe('Settings - Help & Tutorial Section', () => {
     render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
         setSoundSettings={vi.fn()}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
-        playTestSound={vi.fn()} resetTournament={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
+        playTestSound={vi.fn()} playTestVoice={vi.fn()} resetTournament={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
     expect(screen.queryByText('settings.startTutorial')).not.toBeInTheDocument()
@@ -1372,11 +1417,17 @@ describe('Settings - Danger Zone', () => {
     render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
         setSoundSettings={vi.fn()}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={mockResetTournament}
         onShowOnboarding={vi.fn()}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
     expect(screen.getByText('settings.resetTournamentDesc')).toBeInTheDocument()
@@ -1395,11 +1446,17 @@ describe('Settings - Danger Zone', () => {
     render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
         setSoundSettings={vi.fn()}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={mockResetTournament}
         onShowOnboarding={vi.fn()}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
     const resetButtons = screen.getAllByText('Reset Tournament')
@@ -1429,11 +1486,17 @@ describe('Settings - Volume Display', () => {
     return render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        soundSettings={{ enabled: true, volume, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
         setSoundSettings={vi.fn()}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={vi.fn()}
         onShowOnboarding={vi.fn()}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1475,11 +1538,17 @@ describe('Settings - Sound Type Selections', () => {
     return render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false, ...soundOverrides }}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false, ...soundOverrides }}
         setSoundSettings={mockSetSoundSettings}
-        themeSettings={{ mode: 'dark', accent: 'emerald' }} setThemeSettings={vi.fn()}
+        themeSettings={{ mode: 'dark', accent: 'emerald', timeFormat: '24h', showAnte: true }} setThemeSettings={vi.fn()}
         playTestSound={vi.fn()} resetTournament={vi.fn()}
         onShowOnboarding={vi.fn()}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1521,15 +1590,13 @@ describe('Settings - Sound Type Selections', () => {
   })
 
   it('only one sound type is highlighted at a time', () => {
-    renderSettings({ enabled: true, soundType: 'localized' })
+    renderSettings({ enabled: true, soundType: 'evil-laugh' })
     const bellButton = screen.getByText('settings.soundBell').closest('button')!
     const evilButton = screen.getByText('settings.soundEvilLaugh').closest('button')!
-    const voiceButton = screen.getByText('settings.soundLocalized').closest('button')!
     const customButton = screen.getByText('settings.soundCustom').closest('button')!
 
-    expect(voiceButton).toHaveClass('bg-accent/20')
+    expect(evilButton).toHaveClass('bg-accent/20')
     expect(bellButton).not.toHaveClass('bg-accent/20')
-    expect(evilButton).not.toHaveClass('bg-accent/20')
     expect(customButton).not.toHaveClass('bg-accent/20')
   })
 })
@@ -1555,11 +1622,17 @@ describe('Settings - Accent Color Clicks', () => {
     return render(
       <Settings
         tournament={tournament} setTournament={vi.fn()}
-        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
+        soundSettings={{ enabled: true, volume: 0.7, soundType: 'bell', customSoundPath: null, voiceEnabled: false, warningEnabled: false, warningAt60: true, warningAt30: true, autoPauseOnBreak: false }}
         setSoundSettings={vi.fn()}
-        themeSettings={{ mode: 'dark', accent }} setThemeSettings={mockSetThemeSettings}
+        themeSettings={{ mode: 'dark', accent, timeFormat: '24h', showAnte: true }} setThemeSettings={mockSetThemeSettings}
         playTestSound={vi.fn()} resetTournament={vi.fn()}
         onShowOnboarding={vi.fn()}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1623,6 +1696,12 @@ describe('Settings - Export Tournament (Browser mode)', () => {
         playTestSound={mockPlayTestSound}
         resetTournament={mockResetTournament}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1690,6 +1769,12 @@ describe('Settings - Rebuy/Addon Updates', () => {
         playTestSound={mockPlayTestSound}
         resetTournament={mockResetTournament}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1772,6 +1857,12 @@ describe('Settings - Chip Breakdown Rendering', () => {
         playTestSound={mockPlayTestSound}
         resetTournament={mockResetTournament}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -1843,6 +1934,12 @@ describe('Settings - History Interaction', () => {
         playTestSound={mockPlayTestSound}
         resetTournament={mockResetTournament}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -2000,6 +2097,12 @@ describe('Settings - Warning Sound Disable/Enable', () => {
         playTestSound={mockPlayTestSound}
         resetTournament={mockResetTournament}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
   }
@@ -2064,6 +2167,12 @@ describe('Settings - Language Change', () => {
         playTestSound={mockPlayTestSound}
         resetTournament={mockResetTournament}
         onShowOnboarding={mockOnShowOnboarding}
+        playTestVoice={vi.fn()}
+        chipInventory={[
+          { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+          { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+        ]}
+        setChipInventory={vi.fn()}
       />
     )
     
@@ -2078,38 +2187,5 @@ describe('Settings - Language Change', () => {
       fireEvent.change(langSelect, { target: { value: 'es' } })
       // i18n.changeLanguage should be called
     }
-  })
-})
-
-describe('Settings - getChipBreakdown function', () => {
-  // Test the pure function logic
-  it('returns correct breakdown for 10000 chips', () => {
-    // 10000 / 5000 = 2 (red)
-    // remaining 0
-    // Or: 10000 / 1000 = 10 (yellow), etc.
-    // The function works backwards from largest
-    // 10000 / 5000 = 2 chips, remaining 0
-    // So breakdown should include 5000 × 2
-    const breakdown = [
-      { value: 5000, count: 2 },
-    ]
-    expect(breakdown[0].count).toBe(2)
-    expect(breakdown[0].value * breakdown[0].count).toBe(10000)
-  })
-
-  it('handles small chip counts', () => {
-    // 100 chips = 100/25 = 4 chips of 25
-    const total = 100
-    const count = Math.floor(total / 25)
-    expect(count).toBe(4)
-  })
-
-  it('limits chip count per denomination', () => {
-    // Max 10 per non-smallest denomination, 20 for smallest
-    const count = 15
-    const limitedNonSmallest = Math.min(count, 10)
-    const limitedSmallest = Math.min(count, 20)
-    expect(limitedNonSmallest).toBe(10)
-    expect(limitedSmallest).toBe(15)
   })
 })

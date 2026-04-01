@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Tournament, SoundSettings, ThemeSettings, ThemeMode, AccentColor, TournamentHistoryEntry } from '../types'
+import type { Tournament, SoundSettings, ThemeSettings, ThemeMode, AccentColor, TournamentHistoryEntry, PhysicalChip } from '../types'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs'
-import { formatCurrency } from '../utils'
+import { formatCurrency, calculateColorUpSchedule } from '../utils'
 import { AlertModal, ConfirmModal, PromptModal } from './Modal'
 import { SUPPORTED_LANGUAGES } from '../i18n'
 
@@ -15,8 +15,11 @@ interface SettingsProps {
   themeSettings: ThemeSettings
   setThemeSettings: (t: ThemeSettings) => void
   playTestSound: () => void
+  playTestVoice: () => void
   resetTournament: () => void
   onShowOnboarding?: () => void
+  chipInventory: PhysicalChip[]
+  setChipInventory: (chips: PhysicalChip[]) => void
 }
 
 // Modal state type
@@ -30,6 +33,13 @@ type ModalState =
 const isTauri = typeof window !== 'undefined' && '__TAURI__' in window
 
 const STORAGE_KEY_HISTORY = 'pokerpulse_tournament_history'
+const STORAGE_KEY_CUSTOM_CHIP_SETS = 'pokerpulse_custom_chip_sets'
+
+interface CustomChipSet {
+  id: string
+  name: string
+  chips: Omit<PhysicalChip, 'id'>[]
+}
 
 const CURRENCIES = [
   { symbol: '$', name: 'USD' },
@@ -49,11 +59,43 @@ const CHIP_PRESETS = [
   { name: 'Super Deep', chips: 20000, description: 'Maximum depth' },
 ]
 
-export function Settings({ tournament, setTournament, soundSettings, setSoundSettings, themeSettings, setThemeSettings, playTestSound, resetTournament, onShowOnboarding }: SettingsProps) {
+export function Settings({ tournament, setTournament, soundSettings, setSoundSettings, themeSettings, setThemeSettings, playTestSound, playTestVoice, resetTournament, onShowOnboarding, chipInventory, setChipInventory }: SettingsProps) {
   const { t, i18n } = useTranslation()
   const [tournamentHistory, setTournamentHistory] = useState<TournamentHistoryEntry[]>([])
   const [showHistory, setShowHistory] = useState(true)
   const [modal, setModal] = useState<ModalState>({ type: 'none' })
+  const [customChipSets, setCustomChipSets] = useState<CustomChipSet[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CUSTOM_CHIP_SETS)
+      return saved ? JSON.parse(saved) : []
+    } catch { return [] }
+  })
+
+  const saveCustomChipSets = (sets: CustomChipSet[]) => {
+    setCustomChipSets(sets)
+    localStorage.setItem(STORAGE_KEY_CUSTOM_CHIP_SETS, JSON.stringify(sets))
+  }
+
+  const saveCurrentChipSet = () => {
+    setModal({
+      type: 'prompt',
+      title: t('settings.saveChipSet'),
+      message: t('settings.saveChipSetMessage'),
+      placeholder: t('settings.chipSetNamePlaceholder'),
+      onSubmit: (name: string) => {
+        const newSet: CustomChipSet = {
+          id: Date.now().toString(),
+          name,
+          chips: chipInventory.map(({ id, ...rest }) => rest),
+        }
+        saveCustomChipSets([...customChipSets, newSet])
+      },
+    })
+  }
+
+  const deleteCustomChipSet = (id: string) => {
+    saveCustomChipSets(customChipSets.filter(s => s.id !== id))
+  }
 
   const showAlert = (title: string, message: string, variant: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setModal({ type: 'alert', title, message, variant })
@@ -254,7 +296,48 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
       {/* Appearance */}
       <div className="card p-6">
         <h3 className="text-lg font-semibold text-themed-primary mb-4">{t('settings.appearance')}</h3>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-4 gap-6">
+          {/* Language Selector */}
+          <div>
+            <div className="text-sm text-themed-muted mb-3">{t('settings.language')}</div>
+            <select
+              value={SUPPORTED_LANGUAGES.find(l => i18n.language === l.code || i18n.language.startsWith(l.code + '-'))?.code || 'en'}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="input w-full h-[58px]"
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.flag} {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Time Format */}
+          <div>
+            <div className="text-sm text-themed-muted mb-3">{t('settings.timeFormat')}</div>
+            <div className="flex gap-3">
+              {(['24h', '12h'] as const).map((fmt) => (
+                <button
+                  key={fmt}
+                  onClick={() => setThemeSettings({ ...themeSettings, timeFormat: fmt })}
+                  className={`flex-1 h-[58px] rounded-xl border-2 transition-all ${
+                    themeSettings.timeFormat === fmt
+                      ? 'border-accent bg-accent/10'
+                      : 'border-themed hover:border-themed-muted'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-lg">🕐</span>
+                    <span className={`font-medium ${themeSettings.timeFormat === fmt ? 'text-accent' : 'text-themed-secondary'}`}>
+                      {fmt === '24h' ? '24h' : 'AM/PM'}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Light/Dark Mode */}
           <div>
             <div className="text-sm text-themed-muted mb-3">{t('settings.themeMode')}</div>
@@ -263,7 +346,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                 <button
                   key={mode}
                   onClick={() => setThemeSettings({ ...themeSettings, mode })}
-                  className={`flex-1 p-4 rounded-xl border-2 transition-all ${
+                  className={`flex-1 h-[58px] rounded-xl border-2 transition-all ${
                     themeSettings.mode === mode
                       ? 'border-accent bg-accent/10'
                       : 'border-themed hover:border-themed-muted'
@@ -279,7 +362,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
               ))}
             </div>
           </div>
-          
+
           {/* Accent Color */}
           <div>
             <div className="text-sm text-themed-muted mb-3">{t('settings.accentColor')}</div>
@@ -288,7 +371,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                 <button
                   key={color.id}
                   onClick={() => setThemeSettings({ ...themeSettings, accent: color.id })}
-                  className={`aspect-square rounded-xl ${color.class} transition-all flex items-center justify-center ${
+                  className={`h-[58px] rounded-xl ${color.class} transition-all flex items-center justify-center ${
                     themeSettings.accent === color.id
                       ? 'ring-2 ring-offset-2 ring-offset-themed-primary ring-white scale-110'
                       : 'hover:scale-105'
@@ -303,22 +386,6 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Language Selector */}
-          <div>
-            <div className="text-sm text-themed-muted mb-3">{t('settings.language')}</div>
-            <select
-              value={SUPPORTED_LANGUAGES.find(l => i18n.language === l.code || i18n.language.startsWith(l.code + '-'))?.code || 'en'}
-              onChange={(e) => changeLanguage(e.target.value)}
-              className="input w-full"
-            >
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.flag} {lang.name}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
       </div>
@@ -457,26 +524,292 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
             </div>
           </div>
 
-          {/* Chip Breakdown */}
-          <div>
-            <div className="text-sm text-themed-muted mb-2">{t('settings.suggestedChips', { chips: tournament.starting_chips.toLocaleString() })}</div>
-            <div className="flex flex-wrap gap-4">
-              {getChipBreakdown(tournament.starting_chips).map((chip) => (
-                <div key={chip.value} className="flex items-center gap-2">
-                  <div
-                    className="chip"
-                    style={{
-                      backgroundColor: chip.color,
-                      borderColor: chip.borderColor,
-                      color: chip.textColor,
-                    }}
+          {/* Show Ante Toggle */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setThemeSettings({ ...themeSettings, showAnte: !themeSettings.showAnte })}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                themeSettings.showAnte !== false ? 'bg-accent' : 'bg-themed-tertiary'
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                  themeSettings.showAnte !== false ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <div>
+              <label className="text-sm text-themed-muted block">{t('settings.showAnte')}</label>
+              <span className="text-xs text-themed-muted">{t('settings.showAnteDesc')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Chip Manager */}
+      <div className="card p-6">
+        <h3 className="text-lg font-semibold text-themed-primary mb-4 flex items-center gap-2">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {t('settings.chipManager')}
+        </h3>
+
+        {/* Chip Presets */}
+        <div className="mb-4">
+          <div className="text-sm text-themed-muted mb-2">{t('settings.chipPresetSets')}</div>
+          <div className="flex flex-wrap gap-2">
+              {CHIP_SET_PRESETS.map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => setChipInventory(preset.chips.map((c, i) => ({ ...c, id: `${i + 1}` })))}
+                  className="px-3 py-2 rounded-lg text-center transition-colors bg-themed-tertiary hover:bg-themed-secondary text-themed-secondary"
+                  title={t(`settings.chipSetPresets.${preset.key}Desc`)}
+                >
+                  <div className="font-semibold text-sm">{t(`settings.chipSetPresets.${preset.key}`)}</div>
+                </button>
+              ))}
+              {customChipSets.map((set) => (
+                <div key={set.id} className="relative group">
+                  <button
+                    onClick={() => setChipInventory(set.chips.map((c, i) => ({ ...c, id: `${i + 1}` })))}
+                    className="px-3 py-2 rounded-lg text-center transition-colors bg-accent/20 hover:bg-accent/30 text-accent border border-accent/30"
+                    title={set.chips.map(c => c.label).join(', ')}
                   >
-                    {chip.value >= 1000 ? `${chip.value / 1000}K` : chip.value}
-                  </div>
-                  <span className="text-themed-secondary text-sm">× {chip.count}</span>
+                    <div className="font-semibold text-sm">{set.name}</div>
+                  </button>
+                  <button
+                    onClick={() => deleteCustomChipSet(set.id)}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    title={t('settings.deleteChipSet')}
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
+              <button
+                onClick={saveCurrentChipSet}
+                className="px-3 py-2 rounded-lg text-center transition-colors border-2 border-dashed border-themed hover:border-accent hover:text-accent text-themed-muted"
+                title={t('settings.saveChipSet')}
+              >
+                <div className="font-semibold text-sm">+ {t('settings.saveSet')}</div>
+              </button>
             </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6">
+          {/* Left Column: Chip Inventory Table */}
+          <div>
+            <div className="text-sm text-themed-muted mb-2">{t('settings.yourChips')}</div>
+            <div className="overflow-hidden rounded-lg border border-themed">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-themed-tertiary">
+                    <th className="text-left px-3 py-2 text-themed-muted font-medium">{t('settings.chipColor')}</th>
+                    <th className="text-left px-3 py-2 text-themed-muted font-medium">{t('settings.chipLabel')}</th>
+                    <th className="text-right px-3 py-2 text-themed-muted font-medium">{t('settings.chipValue')}</th>
+                    <th className="text-right px-3 py-2 text-themed-muted font-medium">{t('settings.chipQuantity')}</th>
+                    <th className="px-3 py-2 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chipInventory.sort((a, b) => a.value - b.value).map((chip) => (
+                    <tr key={chip.id} className="border-t border-themed">
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={chip.color}
+                            onChange={(e) => {
+                              setChipInventory(chipInventory.map(c =>
+                                c.id === chip.id ? { ...c, color: e.target.value, borderColor: e.target.value } : c
+                              ))
+                            }}
+                            className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                          />
+                          <div
+                            className="chip"
+                            style={{ backgroundColor: chip.color, borderColor: chip.borderColor, color: chip.textColor }}
+                          >
+                            {chip.value >= 1000 ? `${chip.value / 1000}K` : chip.value}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="text"
+                          value={chip.label}
+                          onChange={(e) => setChipInventory(chipInventory.map(c =>
+                            c.id === chip.id ? { ...c, label: e.target.value } : c
+                          ))}
+                          className="input w-24 text-sm"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <input
+                          type="number"
+                          value={chip.value}
+                          onChange={(e) => setChipInventory(chipInventory.map(c =>
+                            c.id === chip.id ? { ...c, value: parseInt(e.target.value) || 1 } : c
+                          ))}
+                          className="input w-20 text-sm text-right"
+                          min="1"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <input
+                          type="number"
+                          value={chip.quantity}
+                          onChange={(e) => setChipInventory(chipInventory.map(c =>
+                            c.id === chip.id ? { ...c, quantity: parseInt(e.target.value) || 0 } : c
+                          ))}
+                          className="input w-20 text-sm text-right"
+                          min="0"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          onClick={() => setChipInventory(chipInventory.filter(c => c.id !== chip.id))}
+                          className="p-1 text-themed-muted hover:text-red-400 transition-colors"
+                          title={t('settings.removeChip')}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button
+              onClick={() => {
+                const newId = `${Date.now()}`
+                setChipInventory([...chipInventory, {
+                  id: newId,
+                  value: 50,
+                  color: '#3b82f6',
+                  borderColor: '#2563eb',
+                  textColor: '#fff',
+                  label: 'Blue',
+                  quantity: 50,
+                }])
+              }}
+              className="mt-2 btn btn-secondary text-sm"
+            >
+              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              {t('settings.addChipDenomination')}
+            </button>
+          </div>
+
+          {/* Right Column: Distribution & Color-Up */}
+          <div className="space-y-4">
+            {/* Per-Player Distribution */}
+            {chipInventory.length > 0 && (
+            <div>
+              <div className="text-sm text-themed-muted mb-2 text-center">
+                {t('settings.perPlayerDistribution', {
+                  chips: tournament.starting_chips.toLocaleString(),
+                  players: tournament.players.length || '?',
+                })}
+              </div>
+              {(() => {
+                const playerCount = Math.max(tournament.players.length, 1)
+                const distribution = calculatePlayerDistribution(chipInventory, tournament.starting_chips)
+                const totalNeeded = distribution.map(d => ({ ...d, totalNeeded: d.count * playerCount }))
+                const hasShortage = totalNeeded.some(d => {
+                  const available = chipInventory.find(c => c.value === d.value)
+                  return available ? d.totalNeeded > available.quantity : true
+                })
+
+                return (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-4 justify-center">
+                      {distribution.map((d) => {
+                        const available = chipInventory.find(c => c.value === d.value)
+                        const needed = d.count * playerCount
+                        const isShort = available ? needed > available.quantity : true
+                        return (
+                          <div key={d.value} className="flex items-center gap-2">
+                            <div
+                              className="chip"
+                              style={{ backgroundColor: d.color, borderColor: d.borderColor, color: d.textColor }}
+                            >
+                              {d.value >= 1000 ? `${d.value / 1000}K` : d.value}
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-themed-secondary">× {d.count}</span>
+                              {tournament.players.length > 0 && (
+                                <span className={`block text-xs ${isShort ? 'text-red-400' : 'text-themed-muted'}`}>
+                                  {needed}/{available?.quantity ?? 0} {t('settings.chipTotal')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {hasShortage && tournament.players.length > 0 && (
+                      <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                        <div className="flex items-center gap-2 text-red-400 text-sm font-medium">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                          {t('settings.chipShortageWarning')}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+          )}
+
+          {/* Color-Up Schedule */}
+          {chipInventory.length > 0 && tournament.blind_structure.length > 0 && (
+            <div>
+              <div className="text-sm text-themed-muted mb-2 text-center">{t('settings.colorUpSchedule')}</div>
+              <div className="text-xs text-themed-muted mb-3 text-center">{t('settings.colorUpScheduleDesc')}</div>
+              <div className="space-y-2">
+                {(() => {
+                  const schedule = calculateColorUpSchedule(chipInventory, tournament.blind_structure)
+                  if (schedule.length === 0) {
+                    return (
+                      <p className="text-themed-muted text-sm text-center py-2">{t('settings.noColorUps')}</p>
+                    )
+                  }
+                  return schedule.map((entry) => (
+                    <div key={entry.chipValue} className={`flex items-center gap-3 p-3 rounded-lg ${
+                      entry.levelIndex <= tournament.current_level
+                        ? 'bg-accent/10 border border-accent/20'
+                        : 'bg-themed-tertiary'
+                    }`}>
+                      <div
+                        className="chip"
+                        style={{ backgroundColor: entry.color, borderColor: entry.borderColor, color: entry.textColor }}
+                      >
+                        {entry.chipValue >= 1000 ? `${entry.chipValue / 1000}K` : entry.chipValue}
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-themed-primary text-sm font-medium">
+                          {t('settings.colorUpAt', { level: entry.levelIndex + 1 })}
+                        </span>
+                        <span className="text-themed-muted text-xs ml-2">
+                          ({t('nav.blinds')}: {entry.smallBlind}/{entry.bigBlind})
+                        </span>
+                      </div>
+                      {entry.levelIndex <= tournament.current_level && (
+                        <span className="text-accent text-xs font-medium">{t('settings.colorUpDone')}</span>
+                      )}
+                    </div>
+                  ))
+                })()}
+              </div>
+            </div>
+          )}
           </div>
         </div>
       </div>
@@ -506,7 +839,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
 
             {soundSettings.enabled && (
               <>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => setSoundSettings({ ...soundSettings, soundType: 'bell' })}
                     className={`p-2 rounded-lg text-center transition-colors ${
@@ -529,17 +862,7 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                     <div className="text-xl mb-1">😈</div>
                     <div className="text-xs font-medium">{t('settings.soundEvilLaugh')}</div>
                   </button>
-                  <button
-                    onClick={() => setSoundSettings({ ...soundSettings, soundType: 'localized' })}
-                    className={`p-2 rounded-lg text-center transition-colors ${
-                      soundSettings.soundType === 'localized'
-                        ? 'bg-accent/20 border border-emerald-600/50 text-accent'
-                        : 'bg-themed-tertiary hover:bg-themed-secondary text-themed-secondary'
-                    }`}
-                  >
-                    <div className="text-xl mb-1">🌍</div>
-                    <div className="text-xs font-medium">{t('settings.soundLocalized')}</div>
-                  </button>
+
                   <button
                     onClick={selectCustomSound}
                     className={`p-2 rounded-lg text-center transition-colors ${
@@ -636,6 +959,34 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
                 }`} />
               </button>
             </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-themed">
+              <div>
+                <div className="text-themed-primary font-medium">{t('settings.voiceAnnouncement')}</div>
+                <div className="text-sm text-themed-muted">{t('settings.voiceAnnouncementDesc')}</div>
+              </div>
+              <button
+                onClick={() => setSoundSettings({ ...soundSettings, voiceEnabled: !soundSettings.voiceEnabled })}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  soundSettings.voiceEnabled ? 'bg-accent' : 'bg-themed-secondary'
+                }`}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                  soundSettings.voiceEnabled ? 'translate-x-7' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+
+            {soundSettings.voiceEnabled && (
+              <div className="pl-4 border-l-2 border-themed">
+                <button onClick={playTestVoice} className="btn btn-secondary text-sm">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                  {t('settings.testVoice')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -784,35 +1135,46 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
         )}
       </div>
 
-      {/* Help & Support */}
-      {onShowOnboarding && (
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold mb-4 text-themed-primary">{t('settings.helpSupport')}</h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium text-themed-primary">{t('settings.showTutorial')}</div>
-              <div className="text-sm text-themed-muted">{t('settings.showTutorialDesc')}</div>
-            </div>
-            <button onClick={onShowOnboarding} className="btn btn-secondary">
-              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      {/* Help & Danger Zone */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Help & Support */}
+        {onShowOnboarding && (
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold mb-4 text-themed-primary flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              {t('settings.startTutorial')}
+              {t('settings.helpSupport')}
+            </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-themed-primary">{t('settings.showTutorial')}</div>
+                <div className="text-sm text-themed-muted">{t('settings.showTutorialDesc')}</div>
+              </div>
+              <button onClick={onShowOnboarding} className="btn btn-secondary">
+                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {t('settings.startTutorial')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Danger Zone */}
+        <div className={`card p-6 border-red-500/20 ${!onShowOnboarding ? 'col-span-2' : ''}`}>
+          <h3 className="text-lg font-semibold text-red-400 mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            {t('settings.resetTournament')}
+          </h3>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-themed-muted">{t('settings.resetTournamentDesc')}</div>
+            <button onClick={resetTournament} className="btn btn-danger">
+              {t('settings.resetTournament')}
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Danger Zone */}
-      <div className="card p-6 border-red-500/20">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-red-400">{t('settings.resetTournament')}</h3>
-            <div className="text-sm text-themed-muted">{t('settings.resetTournamentDesc')}</div>
-          </div>
-          <button onClick={resetTournament} className="btn btn-danger">
-            {t('settings.resetTournament')}
-          </button>
         </div>
       </div>
 
@@ -850,42 +1212,105 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
   )
 }
 
-function getChipBreakdown(totalChips: number): { value: number; count: number; color: string; borderColor: string; textColor: string }[] {
-  // Standard chip colors
-  const chipDefs = [
-    { value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff' },
-    { value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff' },
-    { value: 500, color: '#7c3aed', borderColor: '#6d28d9', textColor: '#fff' },
-    { value: 1000, color: '#fbbf24', borderColor: '#f59e0b', textColor: '#000' },
-    { value: 5000, color: '#ef4444', borderColor: '#dc2626', textColor: '#fff' },
-  ]
+const CHIP_SET_PRESETS = [
+  {
+    name: 'Standard',
+    key: 'standard',
+    chips: [
+      { value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+      { value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+      { value: 500, color: '#7c3aed', borderColor: '#6d28d9', textColor: '#fff', label: 'Purple', quantity: 50 },
+      { value: 1000, color: '#fbbf24', borderColor: '#f59e0b', textColor: '#000', label: 'Yellow', quantity: 50 },
+      { value: 5000, color: '#ef4444', borderColor: '#dc2626', textColor: '#fff', label: 'Red', quantity: 20 },
+    ],
+  },
+  {
+    name: 'Small Set',
+    key: 'smallSet',
+    chips: [
+      { value: 25, color: '#ffffff', borderColor: '#d1d5db', textColor: '#000', label: 'White', quantity: 50 },
+      { value: 100, color: '#ef4444', borderColor: '#dc2626', textColor: '#fff', label: 'Red', quantity: 50 },
+      { value: 500, color: '#3b82f6', borderColor: '#2563eb', textColor: '#fff', label: 'Blue', quantity: 25 },
+      { value: 1000, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 25 },
+    ],
+  },
+  {
+    name: 'Large Set',
+    key: 'largeSet',
+    chips: [
+      { value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 200 },
+      { value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 200 },
+      { value: 500, color: '#7c3aed', borderColor: '#6d28d9', textColor: '#fff', label: 'Purple', quantity: 100 },
+      { value: 1000, color: '#fbbf24', borderColor: '#f59e0b', textColor: '#000', label: 'Yellow', quantity: 100 },
+      { value: 5000, color: '#ef4444', borderColor: '#dc2626', textColor: '#fff', label: 'Red', quantity: 50 },
+      { value: 10000, color: '#ec4899', borderColor: '#db2777', textColor: '#fff', label: 'Pink', quantity: 25 },
+    ],
+  },
+]
 
-  const breakdown: { value: number; count: number; color: string; borderColor: string; textColor: string }[] = []
-  let remaining = totalChips
+function calculatePlayerDistribution(
+  chips: PhysicalChip[],
+  startingChips: number
+): { value: number; count: number; color: string; borderColor: string; textColor: string }[] {
+  const available = chips.filter(c => c.quantity > 0 && c.value <= startingChips)
+  if (available.length === 0) return []
 
-  // Work backwards from largest chip
-  for (let i = chipDefs.length - 1; i >= 0; i--) {
-    const chip = chipDefs[i]
-    if (remaining >= chip.value) {
-      const count = Math.floor(remaining / chip.value)
-      if (count > 0) {
-        // Limit count per denomination for practicality
-        const actualCount = Math.min(count, i === 0 ? 20 : 10)
-        breakdown.push({ ...chip, count: actualCount })
-        remaining -= actualCount * chip.value
-      }
+  const sorted = [...available].sort((a, b) => a.value - b.value) // ascending
+  const n = sorted.length
+
+  if (n === 1) {
+    return [{
+      value: sorted[0].value,
+      count: Math.ceil(startingChips / sorted[0].value),
+      color: sorted[0].color,
+      borderColor: sorted[0].borderColor,
+      textColor: sorted[0].textColor,
+    }]
+  }
+
+  // Tournament-style distribution: start with generous small-chip allocations
+  // (8 of the two smallest denominations, 2 of each larger), then adjust to hit
+  // the target stack. This ensures enough small chips for blinds and change-making.
+  const counts = sorted.map((_, i) => (i < 2 ? 8 : 2))
+  let total = sorted.reduce((sum, chip, i) => sum + chip.value * counts[i], 0)
+
+  // If over target, reduce from largest chips first (keep smallest 2 at min 4)
+  for (let i = n - 1; i >= 0 && total > startingChips; i--) {
+    const minCount = i < 2 ? 4 : 0
+    while (counts[i] > minCount && total > startingChips) {
+      counts[i]--
+      total -= sorted[i].value
     }
   }
 
-  // Add remaining as smallest chips if needed
-  if (remaining > 0 && chipDefs[0]) {
-    const existing = breakdown.find(b => b.value === chipDefs[0].value)
-    if (existing) {
-      existing.count += Math.ceil(remaining / chipDefs[0].value)
-    } else {
-      breakdown.push({ ...chipDefs[0], count: Math.ceil(remaining / chipDefs[0].value) })
+  // If still over (small chips alone exceed stack), reduce more aggressively
+  for (let i = n - 1; i >= 0 && total > startingChips; i--) {
+    while (counts[i] > 0 && total > startingChips) {
+      counts[i]--
+      total -= sorted[i].value
     }
   }
 
-  return breakdown.sort((a, b) => a.value - b.value)
+  // Fill remaining value from largest denomination that fits
+  for (let i = n - 1; i >= 0 && total < startingChips; i--) {
+    while (total + sorted[i].value <= startingChips) {
+      counts[i]++
+      total += sorted[i].value
+    }
+  }
+
+  // If there's still a gap, round up with smallest chip
+  if (total < startingChips) {
+    counts[0]++
+  }
+
+  return sorted
+    .map((chip, i) => ({
+      value: chip.value,
+      count: counts[i],
+      color: chip.color,
+      borderColor: chip.borderColor,
+      textColor: chip.textColor,
+    }))
+    .filter(d => d.count > 0)
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Tournament, Tab, SoundSettings, ThemeSettings, TournamentHistoryEntry } from './types'
+import type { Tournament, Tab, SoundSettings, ThemeSettings, TournamentHistoryEntry, PhysicalChip } from './types'
 import { mockApi } from './api'
 import { calculatePrizePool, checkForUpdates, UpdateInfo } from './utils'
 import { Timer } from './components/Timer'
@@ -29,6 +29,7 @@ const STORAGE_KEYS = {
   activeTab: 'pokerpulse_active_tab',
   themeSettings: 'pokerpulse_theme_settings',
   onboardingComplete: 'pokerpulse_onboarding_complete',
+  chipInventory: 'pokerpulse_chip_inventory',
 }
 
 const defaultSoundSettings: SoundSettings = {
@@ -36,6 +37,7 @@ const defaultSoundSettings: SoundSettings = {
   soundType: 'bell',
   customSoundPath: null,
   volume: 0.7,
+  voiceEnabled: false,
   warningEnabled: true,
   warningAt60: true,
   warningAt30: true,
@@ -45,6 +47,8 @@ const defaultSoundSettings: SoundSettings = {
 const defaultThemeSettings: ThemeSettings = {
   mode: 'dark',
   accent: 'emerald',
+  timeFormat: '24h',
+  showAnte: true,
 }
 
 // Load saved state from localStorage
@@ -85,6 +89,9 @@ function loadSavedSoundSettings(): SoundSettings {
       return {
         ...defaultSoundSettings,
         ...parsed,
+        // Migrate: if user had 'localized' sound type, switch to bell + enable voice
+        soundType: parsed.soundType === 'localized' ? 'bell' : (parsed.soundType ?? 'bell'),
+        voiceEnabled: parsed.soundType === 'localized' ? true : (parsed.voiceEnabled ?? false),
         warningEnabled: parsed.warningEnabled ?? true,
         warningAt60: parsed.warningAt60 ?? true,
         warningAt30: parsed.warningAt30 ?? true,
@@ -121,6 +128,26 @@ function loadSavedTheme(): ThemeSettings {
   return defaultThemeSettings
 }
 
+const defaultChipInventory: PhysicalChip[] = [
+  { id: '1', value: 25, color: '#22c55e', borderColor: '#16a34a', textColor: '#fff', label: 'Green', quantity: 100 },
+  { id: '2', value: 100, color: '#1e1e1e', borderColor: '#404040', textColor: '#fff', label: 'Black', quantity: 100 },
+  { id: '3', value: 500, color: '#7c3aed', borderColor: '#6d28d9', textColor: '#fff', label: 'Purple', quantity: 50 },
+  { id: '4', value: 1000, color: '#fbbf24', borderColor: '#f59e0b', textColor: '#000', label: 'Yellow', quantity: 50 },
+  { id: '5', value: 5000, color: '#ef4444', borderColor: '#dc2626', textColor: '#fff', label: 'Red', quantity: 20 },
+]
+
+function loadSavedChipInventory(): PhysicalChip[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.chipInventory)
+    if (saved) {
+      return JSON.parse(saved)
+    }
+  } catch (e) {
+    console.error('Failed to load saved chip inventory:', e)
+  }
+  return defaultChipInventory
+}
+
 export default function App() {
   const { i18n } = useTranslation()
   const [isLoading, setIsLoading] = useState(true)
@@ -135,6 +162,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem(STORAGE_KEYS.onboardingComplete)
   })
+  const [chipInventory, setChipInventory] = useState<PhysicalChip[]>(loadSavedChipInventory)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const prevLevelRef = useRef(tournament.current_level)
   const warningSoundPlayedRef = useRef<{ 60: boolean; 30: boolean }>({ 60: false, 30: false })
@@ -187,6 +215,11 @@ export default function App() {
     localStorage.setItem(STORAGE_KEYS.soundSettings, JSON.stringify(soundSettings))
   }, [soundSettings])
 
+  // Save chip inventory whenever it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.chipInventory, JSON.stringify(chipInventory))
+  }, [chipInventory])
+
   // Save active tab whenever it changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.activeTab, activeTab)
@@ -216,26 +249,45 @@ export default function App() {
   const playLevelSound = useCallback(() => {
     if (!soundSettings.enabled) return
     
-    let soundUrl: string
+    let soundUrl: string | null = null
     if (soundSettings.soundType === 'bell') {
       soundUrl = '/alarms/bell-ring-01.wav'
     } else if (soundSettings.soundType === 'evil-laugh') {
       soundUrl = '/alarms/evil-laugh.wav'
-    } else if (soundSettings.soundType === 'localized') {
-      const currentLang = i18n.language.split('-')[0] // Handle cases like 'en-US'
-      const soundFile = getLocalizedSoundFile(currentLang)
-      soundUrl = `/alarms/localized/${soundFile}.mp3`
     } else if (soundSettings.customSoundPath) {
       soundUrl = soundSettings.customSoundPath
-    } else {
-      return
     }
 
-    const audio = new Audio(soundUrl)
-    audio.volume = soundSettings.volume
-    audio.play().catch(err => console.warn('Audio play failed:', err))
-    audioRef.current = audio
+    if (soundUrl) {
+      const audio = new Audio(soundUrl)
+      audio.volume = soundSettings.volume
+      audio.play().catch(err => console.warn('Audio play failed:', err))
+      audioRef.current = audio
+    }
+
+    // Play voice announcement independently if enabled
+    if (soundSettings.voiceEnabled) {
+      const currentLang = i18n.language.split('-')[0]
+      const soundFile = getLocalizedSoundFile(currentLang)
+      const voiceUrl = `/alarms/localized/${soundFile}.mp3`
+      // Delay slightly so it doesn't overlap with the main sound
+      setTimeout(() => {
+        const voiceAudio = new Audio(voiceUrl)
+        voiceAudio.volume = soundSettings.volume
+        voiceAudio.play().catch(err => console.warn('Voice audio play failed:', err))
+      }, 500)
+    }
   }, [soundSettings, i18n.language, getLocalizedSoundFile])
+
+  // Play voice announcement test sound
+  const playTestVoice = useCallback(() => {
+    const currentLang = i18n.language.split('-')[0]
+    const soundFile = getLocalizedSoundFile(currentLang)
+    const voiceUrl = `/alarms/localized/${soundFile}.mp3`
+    const audio = new Audio(voiceUrl)
+    audio.volume = soundSettings.volume
+    audio.play().catch(err => console.warn('Voice audio play failed:', err))
+  }, [soundSettings.volume, i18n.language, getLocalizedSoundFile])
 
   // Play warning beep sound
   const playWarningSound = useCallback(() => {
@@ -518,10 +570,27 @@ export default function App() {
     
     const emitState = async () => {
       try {
+        const payoutConfig = (() => {
+          try {
+            const raw = localStorage.getItem('pokerpulse_payout_config')
+            if (raw) {
+              const { paidPlaces, percentages } = JSON.parse(raw)
+              if (paidPlaces && percentages) {
+                const pool = calculatePrizePool(tournament)
+                return percentages.map((pct: number, i: number) => ({
+                  place: i + 1, percentage: pct, amount: Math.floor(pool * pct / 100),
+                }))
+              }
+            }
+          } catch { /* ignore */ }
+          return undefined
+        })()
         await emit('projector-state-update', {
           tournament,
           themeMode: themeSettings.mode,
           accentColor: themeSettings.accent,
+          showAnte: themeSettings.showAnte,
+          payoutConfig,
         })
       } catch (e) {
         console.error('Failed to emit projector state:', e)
@@ -537,10 +606,27 @@ export default function App() {
     
     const unlisten = listen('projector-ready', async () => {
       try {
+        const payoutConfig = (() => {
+          try {
+            const raw = localStorage.getItem('pokerpulse_payout_config')
+            if (raw) {
+              const { paidPlaces, percentages } = JSON.parse(raw)
+              if (paidPlaces && percentages) {
+                const pool = calculatePrizePool(tournament)
+                return percentages.map((pct: number, i: number) => ({
+                  place: i + 1, percentage: pct, amount: Math.floor(pool * pct / 100),
+                }))
+              }
+            }
+          } catch { /* ignore */ }
+          return undefined
+        })()
         await emit('projector-state-update', {
           tournament,
           themeMode: themeSettings.mode,
           accentColor: themeSettings.accent,
+          showAnte: themeSettings.showAnte,
+          payoutConfig,
         })
       } catch (e) {
         console.error('Failed to send initial projector state:', e)
@@ -608,6 +694,7 @@ export default function App() {
         updateInfo={updateInfo}
         isProjectorOpen={isProjectorOpen}
         onToggleProjector={toggleProjector}
+        timeFormat={themeSettings.timeFormat}
       />
       
       <div className="flex-1 flex overflow-hidden">
@@ -617,12 +704,15 @@ export default function App() {
           {activeTab === 'timer' && (
             <Timer
               tournament={tournament}
+              setTournament={setTournament}
               toggleTimer={toggleTimer}
               nextLevel={nextLevel}
               prevLevel={prevLevel}
               addTime={addTime}
               onCompleteTournament={completeTournament}
               onReset={resetTournament}
+              chipInventory={chipInventory}
+              showAnte={themeSettings.showAnte}
             />
           )}
           {activeTab === 'players' && (
@@ -643,8 +733,11 @@ export default function App() {
               themeSettings={themeSettings}
               setThemeSettings={setThemeSettings}
               playTestSound={playLevelSound}
+              playTestVoice={playTestVoice}
               resetTournament={resetTournament}
               onShowOnboarding={handleShowOnboarding}
+              chipInventory={chipInventory}
+              setChipInventory={setChipInventory}
             />
           )}
           {activeTab === 'help' && (

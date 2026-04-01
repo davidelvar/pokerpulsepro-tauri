@@ -6,10 +6,18 @@ import type { Tournament } from '../types'
 import { formatTime, formatCurrency, getActivePlayers, getAverageStack, calculatePrizePool } from '../utils'
 
 // State payload broadcast from main window
+interface PayoutEntry {
+  place: number
+  percentage: number
+  amount: number
+}
+
 interface ProjectorState {
   tournament: Tournament
   themeMode: 'dark' | 'light'
   accentColor: string
+  showAnte?: boolean
+  payoutConfig?: PayoutEntry[]
 }
 
 export function ProjectorView() {
@@ -92,10 +100,42 @@ export function ProjectorView() {
   const isLowTime = tournament.time_remaining_seconds <= 60 && tournament.time_remaining_seconds > 0
   const isFinalLevel = tournament.current_level === tournament.blind_structure.length - 1
   
-  const activePlayers = getActivePlayers(tournament.players).length
+  const activePlayersList = getActivePlayers(tournament.players)
+  const activePlayers = activePlayersList.length
   const totalPlayers = tournament.players.length
   const prizePool = calculatePrizePool(tournament)
   const avgStack = getAverageStack(tournament)
+
+  // Tournament over detection
+  const isTournamentOver = totalPlayers >= 2 && activePlayers <= 1
+  const likelyWinner = activePlayers === 1 ? activePlayersList[0].name : ''
+
+  // Build final standings
+  const payoutConfig = state.payoutConfig || [50, 30, 20].map((pct, i) => ({
+    place: i + 1,
+    percentage: pct,
+    amount: Math.floor(prizePool * pct / 100),
+  }))
+
+  const finalStandings = (() => {
+    if (!isTournamentOver) return []
+    const standings: { name: string; place: number; payout: number }[] = []
+    if (activePlayers === 1) {
+      standings.push({ name: activePlayersList[0].name, place: 1, payout: payoutConfig[0]?.amount || 0 })
+    }
+    const eliminated = tournament.players
+      .filter(p => p.eliminated && p.placement !== null)
+      .sort((a, b) => (a.placement || 999) - (b.placement || 999))
+    eliminated.forEach((p, i) => {
+      const place = activePlayers === 1 ? i + 2 : i + 1
+      standings.push({
+        name: p.name,
+        place,
+        payout: payoutConfig[place - 1]?.amount || 0,
+      })
+    })
+    return standings
+  })()
 
   // Calculate progress percentage for the visual bar
   const totalTime = currentBlind?.duration_minutes * 60 || 1
@@ -165,8 +205,52 @@ export function ProjectorView() {
         </div>
       </div>
 
-      {/* Main Timer Area */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col items-center justify-center">
+        {isTournamentOver ? (
+          /* Tournament Over Screen */
+          <>
+            {likelyWinner ? (
+              <>
+                <div className="mb-[2vh] text-[12vw]">🏆</div>
+                <div className="text-[6vw] font-bold text-accent mb-[1vh]">{likelyWinner}</div>
+                <div className="text-[2.5vw] text-gray-400 mb-[4vh]">{t('timer.winsTheTournament')}</div>
+              </>
+            ) : (
+              <>
+                <div className="mb-[2vh] text-[12vw]">🏁</div>
+                <div className="text-[5vw] font-bold text-white mb-[1vh]">{t('timer.tournamentOver')}</div>
+                <div className="text-[2vw] text-gray-400 mb-[4vh]">{t('timer.allPlayersEliminated')}</div>
+              </>
+            )}
+
+            {/* Final Standings */}
+            {finalStandings.length > 0 && (
+              <div className="w-[60vw] max-w-[800px]">
+                <div className="text-[1.5vw] text-gray-400 uppercase tracking-wider mb-[2vh] text-center">{t('prizes.finalStandings')}</div>
+                <div className="space-y-[1vh]">
+                  {finalStandings.map((s) => (
+                    <div key={s.place} className={`flex items-center justify-between px-[2vw] py-[1.5vh] rounded-xl ${
+                      s.place === 1 ? 'bg-accent/20 border-2 border-accent/40' : s.place <= 3 ? 'bg-gray-800/60 border border-gray-700' : 'bg-gray-800/30'
+                    }`}>
+                      <div className="flex items-center gap-[1.5vw]">
+                        <span className="text-[3vw] w-[4vw] text-center">
+                          {s.place === 1 ? '🥇' : s.place === 2 ? '🥈' : s.place === 3 ? '🥉' : `${s.place}.`}
+                        </span>
+                        <span className={`font-bold ${s.place === 1 ? 'text-accent text-[2.5vw]' : 'text-white text-[2vw]'}`}>{s.name}</span>
+                      </div>
+                      {s.payout > 0 && (
+                        <span className="font-bold text-accent text-[2.5vw]">{formatCurrency(s.payout, tournament.currency_symbol)}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          /* Normal Timer State */
+          <>
         {/* Level Badge */}
         <div className={`
           mb-[2vh] px-[3vw] py-[1vh] rounded-full text-[2.5vw] font-semibold
@@ -217,7 +301,7 @@ export function ProjectorView() {
               <div className="text-[1.5vw] text-gray-400 uppercase tracking-wider mb-[0.5vh]">{t('timer.bigBlind')}</div>
               <div className="text-[8vw] font-bold text-white leading-none">{currentBlind?.big_blind.toLocaleString()}</div>
             </div>
-            {currentBlind?.ante > 0 && (
+            {(state?.showAnte !== false) && currentBlind?.ante > 0 && (
               <>
                 <div className="text-[6vw] text-gray-600 font-light">+</div>
                 <div className="text-center">
@@ -236,9 +320,12 @@ export function ProjectorView() {
             <div className="text-[2vw] text-gray-400 mt-[1vh]">{t('projector.breakMessage')}</div>
           </div>
         )}
+          </>
+        )}
       </div>
 
-      {/* Bottom Bar - Next Level & Progress */}
+      {/* Bottom Bar - Next Level & Progress (hidden when tournament over) */}
+      {!isTournamentOver && (
       <div className="h-[18vh] bg-gradient-to-t from-gray-900/90 to-transparent">
         {/* Progress Bar */}
         <div className="h-[1vh] w-full bg-gray-800">
@@ -260,7 +347,7 @@ export function ProjectorView() {
                   <span className="text-gray-300 font-bold">{nextBlind.small_blind.toLocaleString()}</span>
                   <span className="text-gray-600">/</span>
                   <span className="text-gray-300 font-bold">{nextBlind.big_blind.toLocaleString()}</span>
-                  {nextBlind.ante > 0 && (
+                  {(state?.showAnte !== false) && nextBlind.ante > 0 && (
                     <>
                       <span className="text-gray-600">+</span>
                       <span className="text-accent font-bold">{nextBlind.ante.toLocaleString()}</span>
@@ -275,6 +362,7 @@ export function ProjectorView() {
           )}
         </div>
       </div>
+      )}
     </div>
   )
 }

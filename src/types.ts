@@ -40,9 +40,10 @@ export interface Tournament {
 
 export interface SoundSettings {
   enabled: boolean
-  soundType: 'bell' | 'evil-laugh' | 'localized' | 'custom'
+  soundType: 'bell' | 'evil-laugh' | 'custom'
   customSoundPath: string | null
   volume: number
+  voiceEnabled: boolean
   warningEnabled: boolean
   warningAt60: boolean
   warningAt30: boolean
@@ -52,9 +53,13 @@ export interface SoundSettings {
 export type ThemeMode = 'dark' | 'light'
 export type AccentColor = 'emerald' | 'blue' | 'purple' | 'rose' | 'amber' | 'cyan'
 
+export type TimeFormat = '12h' | '24h'
+
 export interface ThemeSettings {
   mode: ThemeMode
   accent: AccentColor
+  timeFormat: TimeFormat
+  showAnte: boolean
 }
 
 export interface TournamentHistoryEntry {
@@ -66,6 +71,16 @@ export interface TournamentHistoryEntry {
   prizePool: number
   currency_symbol: string
   duration_minutes: number
+}
+
+export interface PhysicalChip {
+  id: string
+  value: number
+  color: string
+  borderColor: string
+  textColor: string
+  label: string
+  quantity: number
 }
 
 export type Tab = 'timer' | 'players' | 'blinds' | 'prizes' | 'settings' | 'help'

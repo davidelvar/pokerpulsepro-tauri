@@ -823,12 +823,12 @@ describe('App Component', () => {
       expect(MockAudioConstructor).toHaveBeenCalledWith('/alarms/evil-laugh.wav')
     })
 
-    it('plays localized sound for current language', async () => {
+    it('plays voice announcement when voiceEnabled is true', async () => {
       ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
         if (key === 'pokerpulse_onboarding_complete') return 'true'
         if (key === 'pokerpulse_sound_settings') return JSON.stringify({
-          enabled: true, soundType: 'localized', customSoundPath: null,
-          volume: 0.7, warningEnabled: true, warningAt60: true, warningAt30: true, autoPauseOnBreak: true,
+          enabled: true, soundType: 'bell', customSoundPath: null,
+          volume: 0.7, voiceEnabled: true, warningEnabled: true, warningAt60: true, warningAt30: true, autoPauseOnBreak: true,
         })
         return null
       })
@@ -839,7 +839,8 @@ describe('App Component', () => {
         fireEvent.keyDown(window, { code: 'ArrowRight' })
       })
 
-      expect(MockAudioConstructor).toHaveBeenCalledWith('/alarms/localized/english.mp3')
+      // Bell sound plays immediately
+      expect(MockAudioConstructor).toHaveBeenCalledWith('/alarms/bell-ring-01.wav')
     })
 
     it('does not play sound when disabled', async () => {
