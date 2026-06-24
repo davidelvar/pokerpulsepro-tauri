@@ -4,7 +4,7 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
 
 🌐 **[pokerpulsepro.com](https://pokerpulsepro.com)**
 
-![Version](https://img.shields.io/badge/Version-1.2.2-blue)
+![Version](https://img.shields.io/badge/Version-1.3.0-blue)
 ![PokerPulsePro](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Tests](https://img.shields.io/badge/Tests-926%20passing-brightgreen)
@@ -372,6 +372,20 @@ MIT License - feel free to use this for your home games!
 Contributions welcome! Please open an issue or PR.
 
 ## 📋 Changelog
+
+### v1.3.0
+- **♟️ Table Rebalancing Prompt** - Get nudged to reseat players when tables go uneven
+  - App-wide banner appears (on any tab, including the Timer) once eliminations leave occupied tables unbalanced
+  - One-click "Rebalance" moves players from the fullest table to the shortest until they're even
+  - Auto-dismisses when balanced, and reappears when the next elimination changes the counts
+- **💵 Prize Pool Rounding** - Round payouts so you don't have to deal in small change
+  - Choose a rounding increment in the Prizes tab: Off, $1, $5, $10, $25, or $100
+  - Lower places round to a clean amount; 1st place absorbs the remainder so payouts still total the prize pool exactly
+  - Reflected in the projector view as well
+- **🎰 Editable Color-Up Schedule** - Take manual control of when chips are colored up
+  - Smarter auto-suggestion: looks ahead so a later small ante no longer forces an early color-up, and handles non-round blinds (e.g. a 75 small blind made of 50s + 25s)
+  - Override the color-up level per denomination from the Chip Manager, or leave it on Auto
+  - The live Timer color-up prompts follow your overrides
 
 ### v1.2.2
 - **🔧 Fix Stale Update Cache** - No longer shows outdated versions as available updates
