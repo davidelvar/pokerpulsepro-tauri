@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Tournament, Tab, SoundSettings, ThemeSettings, TournamentHistoryEntry, PhysicalChip } from './types'
 import { mockApi } from './api'
-import { calculatePrizePool, checkForUpdates, UpdateInfo } from './utils'
+import { calculatePrizePool, checkForUpdates, UpdateInfo, applyPayoutRounding } from './utils'
+import { ReseatBanner } from './components/ReseatBanner'
 import { Timer } from './components/Timer'
 import { Players } from './components/Players'
 import { Blinds } from './components/Blinds'
@@ -574,12 +575,10 @@ export default function App() {
           try {
             const raw = localStorage.getItem('pokerpulse_payout_config')
             if (raw) {
-              const { paidPlaces, percentages } = JSON.parse(raw)
+              const { paidPlaces, percentages, roundingIncrement } = JSON.parse(raw)
               if (paidPlaces && percentages) {
                 const pool = calculatePrizePool(tournament)
-                return percentages.map((pct: number, i: number) => ({
-                  place: i + 1, percentage: pct, amount: Math.floor(pool * pct / 100),
-                }))
+                return applyPayoutRounding(pool, percentages, roundingIncrement || 0)
               }
             }
           } catch { /* ignore */ }
@@ -610,12 +609,10 @@ export default function App() {
           try {
             const raw = localStorage.getItem('pokerpulse_payout_config')
             if (raw) {
-              const { paidPlaces, percentages } = JSON.parse(raw)
+              const { paidPlaces, percentages, roundingIncrement } = JSON.parse(raw)
               if (paidPlaces && percentages) {
                 const pool = calculatePrizePool(tournament)
-                return percentages.map((pct: number, i: number) => ({
-                  place: i + 1, percentage: pct, amount: Math.floor(pool * pct / 100),
-                }))
+                return applyPayoutRounding(pool, percentages, roundingIncrement || 0)
               }
             }
           } catch { /* ignore */ }
@@ -696,7 +693,13 @@ export default function App() {
         onToggleProjector={toggleProjector}
         timeFormat={themeSettings.timeFormat}
       />
-      
+
+      {/* Table rebalancing nudge — shown on every tab except Players, which has
+          its own inline balancing UI. */}
+      {activeTab !== 'players' && (
+        <ReseatBanner tournament={tournament} setTournament={setTournament} />
+      )}
+
       <div className="flex-1 flex overflow-hidden">
         <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
         

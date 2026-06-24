@@ -161,7 +161,11 @@
     "assignAll": "Assigner Tous",
     "filtered": "filtrés",
     "noMatchingPlayers": "Aucun joueur correspondant",
-    "quickSet": "Rapide"
+    "quickSet": "Rapide",
+    "reseatTitle": "Les tables doivent être rééquilibrées",
+    "reseatDetail": "La table {{bigTable}} a {{bigCount}} joueurs, la table {{smallTable}} en a {{smallCount}}.",
+    "rebalanceNow": "Rééquilibrer",
+    "reseatDismiss": "Ignorer"
   },
   "blinds": {
     "title": "Structure des Blindes",
@@ -244,7 +248,10 @@
     "dragToAdjust": "Faites glisser les séparateurs ou curseurs pour ajuster",
     "valid": "Valide",
     "exportTemplate": "Exporter vers un fichier",
-    "importTemplate": "Importer depuis un fichier"
+    "importTemplate": "Importer depuis un fichier",
+    "rounding": "Arrondir les gains",
+    "roundingOff": "Non",
+    "roundingHint": "Chaque gain est arrondi au montant le plus proche ; le reste va à la 1re place."
   },
   "settings": {
     "title": "Paramètres",
@@ -310,7 +317,6 @@
     "colorUpScheduleDesc": "Quand retirer les petites dénominations selon votre structure de blindes",
     "colorUpAt": "Color-up au Niveau {{level}}",
     "colorUpDone": "Fait",
-    "noColorUps": "Aucun color-up nécessaire avec la structure de blindes actuelle",
     "sound": "Paramètres Audio",
     "levelChangeSound": "Son de Changement de Niveau",
     "levelChangeSoundDesc": "Jouer un son quand le niveau change",
@@ -361,7 +367,11 @@
     "invalidFile": "Fichier Invalide",
     "invalidFileMsg": "Le fichier sélectionné n'est pas un fichier JSON valide",
     "tournamentComplete": "Tournoi Terminé",
-    "tournamentSaved": "Le tournoi a été sauvegardé dans l'historique !"
+    "tournamentSaved": "Le tournoi a été sauvegardé dans l'historique !",
+    "colorUpAuto": "Auto",
+    "colorUpManual": "Manuel",
+    "colorUpStaysInPlay": "Reste en jeu (pas de changement)",
+    "colorUpLevelFor": "Niveau de changement pour {{chip}}"
   },
   "help": {
     "title": "Classement des Mains de Poker",
@@ -519,7 +529,8 @@
           "Affiche les attributions des joueurs",
           "Supporte plusieurs structures de paiement"
         ]
-      },      "settings": {
+      },
+      "settings": {
         "title": "Paramètres",
         "description": "Personnalisez votre expérience de tournoi avec des paramètres complets.",
         "features": [
@@ -528,7 +539,8 @@
           "Valeurs par défaut du tournoi",
           "Sélection de la langue"
         ]
-      },      "projector": {
+      },
+      "projector": {
         "title": "Vue Projecteur",
         "description": "Ouvrez une fenêtre séparée optimisée pour les grands écrans et projecteurs.",
         "features": [

@@ -161,7 +161,11 @@
     "assignAll": "Úthluta Öllum",
     "filtered": "síað",
     "noMatchingPlayers": "Engir samsvarandi leikmenn",
-    "quickSet": "Fljótt"
+    "quickSet": "Fljótt",
+    "reseatTitle": "Endurjafna þarf borðin",
+    "reseatDetail": "Borð {{bigTable}} er með {{bigCount}} leikmenn, borð {{smallTable}} er með {{smallCount}}.",
+    "rebalanceNow": "Endurjafna",
+    "reseatDismiss": "Hunsa"
   },
   "blinds": {
     "title": "Blind Uppbygging",
@@ -244,7 +248,10 @@
     "dragToAdjust": "Dragðu skiljur eða rennibrautir til að stilla",
     "valid": "Gilt",
     "exportTemplate": "Flytja út í skrá",
-    "importTemplate": "Flytja inn úr skrá"
+    "importTemplate": "Flytja inn úr skrá",
+    "rounding": "Námunda verðlaun",
+    "roundingOff": "Af",
+    "roundingHint": "Hver verðlaun eru námunduð að næstu upphæð; afgangurinn fer í 1. sæti."
   },
   "settings": {
     "title": "Stillingar",
@@ -310,7 +317,6 @@
     "colorUpScheduleDesc": "Hvenær á að fjarlægja smærri tegundir miðað við blindstrúktúr",
     "colorUpAt": "Color-up á Stigi {{level}}",
     "colorUpDone": "Búið",
-    "noColorUps": "Engin color-ups þörf með núverandi blindstrúktúr",
     "sound": "Hljóðstillingar",
     "levelChangeSound": "Hljóð við Stigaskipti",
     "levelChangeSoundDesc": "Spila hljóð þegar stig breytist",
@@ -361,7 +367,11 @@
     "invalidFile": "Ógild Skrá",
     "invalidFileMsg": "Valin skrá er ekki gild JSON skrá",
     "tournamentComplete": "Mótskeið Lokið",
-    "tournamentSaved": "Mótskeið hefur verið vistað í sögu!"
+    "tournamentSaved": "Mótskeið hefur verið vistað í sögu!",
+    "colorUpAuto": "Sjálfvirkt",
+    "colorUpManual": "Handvirkt",
+    "colorUpStaysInPlay": "Helst í spili (engin litaskipti)",
+    "colorUpLevelFor": "Litaskiptastig fyrir {{chip}}"
   },
   "help": {
     "title": "Röðun Pókerhanda",

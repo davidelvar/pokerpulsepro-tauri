@@ -161,7 +161,11 @@
     "assignAll": "Alle zuweisen",
     "filtered": "gefiltert",
     "noMatchingPlayers": "Keine passenden Spieler",
-    "quickSet": "Schnell"
+    "quickSet": "Schnell",
+    "reseatTitle": "Tische müssen ausgeglichen werden",
+    "reseatDetail": "Tisch {{bigTable}} hat {{bigCount}} Spieler, Tisch {{smallTable}} hat {{smallCount}}.",
+    "rebalanceNow": "Ausgleichen",
+    "reseatDismiss": "Schließen"
   },
   "blinds": {
     "title": "Blindstruktur",
@@ -244,7 +248,10 @@
     "dragToAdjust": "Trennlinien oder Schieberegler ziehen zum Anpassen",
     "valid": "Gültig",
     "exportTemplate": "In Datei exportieren",
-    "importTemplate": "Aus Datei importieren"
+    "importTemplate": "Aus Datei importieren",
+    "rounding": "Auszahlungen runden",
+    "roundingOff": "Aus",
+    "roundingHint": "Jeder Preis wird auf den nächsten Betrag gerundet; der Rest geht an den 1. Platz."
   },
   "settings": {
     "title": "Einstellungen",
@@ -310,7 +317,6 @@
     "colorUpScheduleDesc": "Wann kleinere Denominationen basierend auf der Blindstruktur entfernt werden",
     "colorUpAt": "Color-Up bei Level {{level}}",
     "colorUpDone": "Erledigt",
-    "noColorUps": "Keine Color-Ups mit der aktuellen Blindstruktur nötig",
     "sound": "Sound-Einstellungen",
     "levelChangeSound": "Level-Wechsel-Sound",
     "levelChangeSoundDesc": "Sound abspielen, wenn das Level wechselt",
@@ -361,7 +367,11 @@
     "invalidFile": "Ungültige Datei",
     "invalidFileMsg": "Die ausgewählte Datei ist keine gültige JSON-Datei",
     "tournamentComplete": "Turnier abgeschlossen",
-    "tournamentSaved": "Turnier wurde in der Historie gespeichert!"
+    "tournamentSaved": "Turnier wurde in der Historie gespeichert!",
+    "colorUpAuto": "Auto",
+    "colorUpManual": "Manuell",
+    "colorUpStaysInPlay": "Bleibt im Spiel (kein Farbwechsel)",
+    "colorUpLevelFor": "Farbwechsel-Level für {{chip}}"
   },
   "help": {
     "title": "Poker-Handrangliste",
@@ -519,7 +529,8 @@
           "Zeigt Spielerzuordnungen",
           "Unterstützt mehrere Auszahlungsstrukturen"
         ]
-      },      "settings": {
+      },
+      "settings": {
         "title": "Einstellungen",
         "description": "Passe dein Turniererlebnis mit umfassenden Einstellungen an.",
         "features": [
@@ -528,7 +539,8 @@
           "Turnier-Standardwerte",
           "Sprachauswahl"
         ]
-      },      "projector": {
+      },
+      "projector": {
         "title": "Projektor-Ansicht",
         "description": "Öffne ein separates Fenster, optimiert für große Bildschirme und Projektoren.",
         "features": [

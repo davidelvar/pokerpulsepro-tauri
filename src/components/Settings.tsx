@@ -769,43 +769,79 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
           )}
 
           {/* Color-Up Schedule */}
-          {chipInventory.length > 0 && tournament.blind_structure.length > 0 && (
+          {chipInventory.length > 1 && tournament.blind_structure.length > 0 && (
             <div>
               <div className="text-sm text-themed-muted mb-2 text-center">{t('settings.colorUpSchedule')}</div>
               <div className="text-xs text-themed-muted mb-3 text-center">{t('settings.colorUpScheduleDesc')}</div>
               <div className="space-y-2">
                 {(() => {
+                  const sortedChips = [...chipInventory].sort((a, b) => a.value - b.value)
+                  // Every denomination except the largest can be colored up.
+                  const editableChips = sortedChips.slice(0, -1)
                   const schedule = calculateColorUpSchedule(chipInventory, tournament.blind_structure)
-                  if (schedule.length === 0) {
-                    return (
-                      <p className="text-themed-muted text-sm text-center py-2">{t('settings.noColorUps')}</p>
-                    )
+                  const entryByValue = new Map(schedule.map((e) => [e.chipValue, e]))
+                  const levelOptions = tournament.blind_structure
+                    .map((level, index) => ({ level, index }))
+                    .filter(({ level }) => !level.is_break)
+
+                  const setColorUpLevel = (chipId: string, value: string) => {
+                    const lvl = value === '' ? null : parseInt(value)
+                    setChipInventory(chipInventory.map((c) =>
+                      c.id === chipId ? { ...c, colorUpLevel: lvl } : c
+                    ))
                   }
-                  return schedule.map((entry) => (
-                    <div key={entry.chipValue} className={`flex items-center gap-3 p-3 rounded-lg ${
-                      entry.levelIndex <= tournament.current_level
-                        ? 'bg-accent/10 border border-accent/20'
-                        : 'bg-themed-tertiary'
-                    }`}>
-                      <div
-                        className="chip"
-                        style={{ backgroundColor: entry.color, borderColor: entry.borderColor, color: entry.textColor }}
-                      >
-                        {entry.chipValue >= 1000 ? `${entry.chipValue / 1000}K` : entry.chipValue}
+
+                  return editableChips.map((chip) => {
+                    const entry = entryByValue.get(chip.value)
+                    const done = entry != null && entry.levelIndex <= tournament.current_level
+                    return (
+                      <div key={chip.id} className={`flex items-center gap-3 p-3 rounded-lg ${
+                        done ? 'bg-accent/10 border border-accent/20' : 'bg-themed-tertiary'
+                      }`}>
+                        <div
+                          className="chip"
+                          style={{ backgroundColor: chip.color, borderColor: chip.borderColor, color: chip.textColor }}
+                        >
+                          {chip.value >= 1000 ? `${chip.value / 1000}K` : chip.value}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {entry ? (
+                            <>
+                              <span className="text-themed-primary text-sm font-medium">
+                                {t('settings.colorUpAt', { level: entry.levelIndex + 1 })}
+                              </span>
+                              <span className="text-themed-muted text-xs ml-2">
+                                ({t('nav.blinds')}: {entry.smallBlind}/{entry.bigBlind})
+                              </span>
+                              {entry.manual && (
+                                <span className="ml-2 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent/20 text-accent">
+                                  {t('settings.colorUpManual')}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-themed-muted text-sm">{t('settings.colorUpStaysInPlay')}</span>
+                          )}
+                        </div>
+                        <select
+                          value={String(chip.colorUpLevel ?? '')}
+                          onChange={(e) => setColorUpLevel(chip.id, e.target.value)}
+                          aria-label={t('settings.colorUpLevelFor', { chip: chip.label || chip.value })}
+                          className="input text-xs py-1 px-2 w-auto"
+                        >
+                          <option value="">{t('settings.colorUpAuto')}</option>
+                          {levelOptions.map(({ level, index }) => (
+                            <option key={level.id || index} value={index + 1}>
+                              {t('settings.colorUpAt', { level: index + 1 })} ({level.small_blind}/{level.big_blind})
+                            </option>
+                          ))}
+                        </select>
+                        {done && (
+                          <span className="text-accent text-xs font-medium">{t('settings.colorUpDone')}</span>
+                        )}
                       </div>
-                      <div className="flex-1">
-                        <span className="text-themed-primary text-sm font-medium">
-                          {t('settings.colorUpAt', { level: entry.levelIndex + 1 })}
-                        </span>
-                        <span className="text-themed-muted text-xs ml-2">
-                          ({t('nav.blinds')}: {entry.smallBlind}/{entry.bigBlind})
-                        </span>
-                      </div>
-                      {entry.levelIndex <= tournament.current_level && (
-                        <span className="text-accent text-xs font-medium">{t('settings.colorUpDone')}</span>
-                      )}
-                    </div>
-                  ))
+                    )
+                  })
                 })()}
               </div>
             </div>

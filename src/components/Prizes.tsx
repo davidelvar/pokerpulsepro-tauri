@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Tournament } from '../types'
-import { calculatePrizePool, formatCurrency, getEliminatedPlayers, generateId } from '../utils'
+import { calculatePrizePool, formatCurrency, getEliminatedPlayers, generateId, applyPayoutRounding, PAYOUT_ROUNDING_INCREMENTS } from '../utils'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs'
 
@@ -54,6 +54,7 @@ export function Prizes({ tournament }: PrizesProps) {
   const { t } = useTranslation()
   const [paidPlaces, setPaidPlaces] = useState(3)
   const [percentages, setPercentages] = useState<number[]>([50, 30, 20])
+  const [roundingIncrement, setRoundingIncrement] = useState(0)
   const [savedTemplates, setSavedTemplates] = useState<SavedPrizeTemplate[]>([])
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [newTemplateName, setNewTemplateName] = useState('')
@@ -76,10 +77,13 @@ export function Prizes({ tournament }: PrizesProps) {
     try {
       const config = localStorage.getItem(STORAGE_KEY_PAYOUT_CONFIG)
       if (config) {
-        const { paidPlaces: pp, percentages: pcts } = JSON.parse(config)
+        const { paidPlaces: pp, percentages: pcts, roundingIncrement: ri } = JSON.parse(config)
         if (pp && pcts) {
           setPaidPlaces(pp)
           setPercentages(pcts)
+        }
+        if (typeof ri === 'number') {
+          setRoundingIncrement(ri)
         }
       }
     } catch (e) {
@@ -90,11 +94,11 @@ export function Prizes({ tournament }: PrizesProps) {
   // Persist payout config whenever it changes
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_PAYOUT_CONFIG, JSON.stringify({ paidPlaces, percentages }))
+      localStorage.setItem(STORAGE_KEY_PAYOUT_CONFIG, JSON.stringify({ paidPlaces, percentages, roundingIncrement }))
     } catch (e) {
       console.error('Failed to save payout config:', e)
     }
-  }, [paidPlaces, percentages])
+  }, [paidPlaces, percentages, roundingIncrement])
 
   const initialLoadRef = useRef(true)
   useEffect(() => {
@@ -117,11 +121,7 @@ export function Prizes({ tournament }: PrizesProps) {
   const totalPercentage = percentages.reduce((sum, p) => sum + p, 0)
   const isValid = Math.abs(totalPercentage - 100) < 0.01
 
-  const payouts = percentages.map((pct, i) => ({
-    place: i + 1,
-    percentage: pct,
-    amount: Math.floor(prizePool * pct / 100),
-  }))
+  const payouts = applyPayoutRounding(prizePool, percentages, roundingIncrement)
 
   const basePlaceLabels = ['🥇', '🥈', '🥉']
   const placeLabels = Array.from({ length: paidPlaces }, (_, i) => 
@@ -590,6 +590,29 @@ export function Prizes({ tournament }: PrizesProps) {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Payout Rounding */}
+          <div className="mb-6">
+            <label className="text-sm text-themed-muted mb-2 block">{t('prizes.rounding')}</label>
+            <div className="flex gap-2 items-center flex-wrap">
+              {PAYOUT_ROUNDING_INCREMENTS.map((inc) => (
+                <button
+                  key={inc}
+                  onClick={() => setRoundingIncrement(inc)}
+                  className={`h-10 px-3 min-w-[2.5rem] rounded-lg font-medium transition-colors ${
+                    roundingIncrement === inc
+                      ? 'bg-accent text-white'
+                      : 'bg-themed-tertiary text-themed-secondary hover:opacity-80'
+                  }`}
+                >
+                  {inc === 0 ? t('prizes.roundingOff') : `${tournament.currency_symbol}${inc}`}
+                </button>
+              ))}
+            </div>
+            {roundingIncrement > 0 && (
+              <p className="text-xs text-themed-muted mt-2">{t('prizes.roundingHint')}</p>
+            )}
           </div>
 
           {/* Interactive Stacked Bar */}

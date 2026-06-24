@@ -8,6 +8,7 @@ import {
   movePlayerToSeat,
   isSeatOccupied,
   getNextAvailableSeat,
+  autoBalanceTables,
 } from '../utils'
 import type { Player } from '../types'
 
@@ -354,6 +355,100 @@ describe('Multi-Table Utilities', () => {
       
       expect(nextSeat).toBeNull()
     })
+  })
+})
+
+describe('autoBalanceTables', () => {
+  const sizeOf = (players: Player[], table: number) =>
+    players.filter(p => !p.eliminated && p.tableNumber === table).length
+
+  it('balances a lopsided 2-table layout to within one player', () => {
+    const players = [
+      createPlayer('1', 'A', { tableNumber: 1, seatNumber: 1 }),
+      createPlayer('2', 'B', { tableNumber: 1, seatNumber: 2 }),
+      createPlayer('3', 'C', { tableNumber: 1, seatNumber: 3 }),
+      createPlayer('4', 'D', { tableNumber: 1, seatNumber: 4 }),
+      createPlayer('5', 'E', { tableNumber: 1, seatNumber: 5 }),
+      createPlayer('6', 'F', { tableNumber: 2, seatNumber: 1 }),
+    ]
+
+    const balanced = autoBalanceTables(players, 2, 9)
+
+    expect(sizeOf(balanced, 1)).toBe(3)
+    expect(sizeOf(balanced, 2)).toBe(3)
+  })
+
+  it('leaves already-balanced tables untouched', () => {
+    const players = [
+      createPlayer('1', 'A', { tableNumber: 1, seatNumber: 1 }),
+      createPlayer('2', 'B', { tableNumber: 1, seatNumber: 2 }),
+      createPlayer('3', 'C', { tableNumber: 2, seatNumber: 1 }),
+      createPlayer('4', 'D', { tableNumber: 2, seatNumber: 2 }),
+    ]
+
+    const balanced = autoBalanceTables(players, 2, 9)
+
+    expect(balanced.map(p => p.tableNumber)).toEqual([1, 1, 2, 2])
+    expect(balanced.map(p => p.seatNumber)).toEqual([1, 2, 1, 2])
+  })
+
+  it('balances three uneven tables to within one player', () => {
+    const players = [
+      ...Array.from({ length: 6 }, (_, i) => createPlayer(`a${i}`, `A${i}`, { tableNumber: 1, seatNumber: i + 1 })),
+      createPlayer('b1', 'B1', { tableNumber: 2, seatNumber: 1 }),
+      createPlayer('c1', 'C1', { tableNumber: 3, seatNumber: 1 }),
+    ]
+
+    const balanced = autoBalanceTables(players, 3, 9)
+    const sizes = [1, 2, 3].map(t => sizeOf(balanced, t))
+
+    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThanOrEqual(1)
+  })
+
+  it('does not seat players into empty tables (balancing, not spreading)', () => {
+    const players = [
+      ...Array.from({ length: 4 }, (_, i) => createPlayer(`a${i}`, `A${i}`, { tableNumber: 1, seatNumber: i + 1 })),
+      ...Array.from({ length: 4 }, (_, i) => createPlayer(`b${i}`, `B${i}`, { tableNumber: 2, seatNumber: i + 1 })),
+    ]
+
+    const balanced = autoBalanceTables(players, 3, 9)
+
+    expect(sizeOf(balanced, 3)).toBe(0) // empty table stays empty
+    expect(sizeOf(balanced, 1)).toBe(4)
+    expect(sizeOf(balanced, 2)).toBe(4)
+  })
+
+  it('ignores eliminated players when balancing', () => {
+    const players = [
+      createPlayer('1', 'A', { tableNumber: 1, seatNumber: 1 }),
+      createPlayer('2', 'B', { tableNumber: 1, seatNumber: 2 }),
+      createPlayer('3', 'C', { tableNumber: 1, seatNumber: 3, eliminated: true, placement: 4 }),
+      createPlayer('4', 'D', { tableNumber: 2, seatNumber: 1 }),
+    ]
+
+    const balanced = autoBalanceTables(players, 2, 9)
+
+    // 2 active on table 1, 1 on table 2 => already within one; no moves needed.
+    expect(sizeOf(balanced, 1)).toBe(2)
+    expect(sizeOf(balanced, 2)).toBe(1)
+  })
+
+  it('never loses, duplicates, or double-seats players', () => {
+    const players = [
+      ...Array.from({ length: 8 }, (_, i) => createPlayer(`a${i}`, `A${i}`, { tableNumber: 1, seatNumber: i + 1 })),
+      createPlayer('b1', 'B1', { tableNumber: 2, seatNumber: 1 }),
+      createPlayer('b2', 'B2', { tableNumber: 2, seatNumber: 2 }),
+    ]
+
+    const balanced = autoBalanceTables(players, 2, 9)
+
+    // Same set of players
+    expect(balanced.map(p => p.id).sort()).toEqual(players.map(p => p.id).sort())
+    // No two active players share the same table+seat
+    const occupiedSeats = balanced
+      .filter(p => !p.eliminated)
+      .map(p => `${p.tableNumber}-${p.seatNumber}`)
+    expect(new Set(occupiedSeats).size).toBe(occupiedSeats.length)
   })
 })
 

@@ -161,7 +161,11 @@
     "assignAll": "Atribuir Todos",
     "filtered": "filtrados",
     "noMatchingPlayers": "Nenhum jogador correspondente",
-    "quickSet": "Rápido"
+    "quickSet": "Rápido",
+    "reseatTitle": "As mesas precisam de reequilíbrio",
+    "reseatDetail": "A mesa {{bigTable}} tem {{bigCount}} jogadores, a mesa {{smallTable}} tem {{smallCount}}.",
+    "rebalanceNow": "Reequilibrar",
+    "reseatDismiss": "Dispensar"
   },
   "blinds": {
     "title": "Estrutura de Blinds",
@@ -244,7 +248,10 @@
     "dragToAdjust": "Arraste os divisores ou controles para ajustar",
     "valid": "Válido",
     "exportTemplate": "Exportar para arquivo",
-    "importTemplate": "Importar de arquivo"
+    "importTemplate": "Importar de arquivo",
+    "rounding": "Arredondar prêmios",
+    "roundingOff": "Não",
+    "roundingHint": "Cada prêmio é arredondado para o valor mais próximo; o restante vai para o 1.º lugar."
   },
   "settings": {
     "title": "Configurações",
@@ -310,7 +317,6 @@
     "colorUpScheduleDesc": "Quando remover denominações menores com base na sua estrutura de blinds",
     "colorUpAt": "Color-up no Nível {{level}}",
     "colorUpDone": "Feito",
-    "noColorUps": "Nenhum color-up necessário com a estrutura de blinds atual",
     "sound": "Configurações de Som",
     "levelChangeSound": "Som de Mudança de Nível",
     "levelChangeSoundDesc": "Tocar um som quando o nível mudar",
@@ -361,7 +367,11 @@
     "invalidFile": "Arquivo Inválido",
     "invalidFileMsg": "O arquivo selecionado não é um arquivo JSON válido",
     "tournamentComplete": "Torneio Completo",
-    "tournamentSaved": "O torneio foi salvo no histórico!"
+    "tournamentSaved": "O torneio foi salvo no histórico!",
+    "colorUpAuto": "Auto",
+    "colorUpManual": "Manual",
+    "colorUpStaysInPlay": "Permanece em jogo (sem troca)",
+    "colorUpLevelFor": "Nível de troca para {{chip}}"
   },
   "help": {
     "title": "Ranking de Mãos de Poker",
@@ -519,7 +529,8 @@
           "Mostra atribuições dos jogadores",
           "Suporta múltiplas estruturas de pagamento"
         ]
-      },      "settings": {
+      },
+      "settings": {
         "title": "Configurações",
         "description": "Personalize sua experiência de torneio com configurações completas.",
         "features": [
@@ -528,7 +539,8 @@
           "Padrões do torneio",
           "Seleção de idioma"
         ]
-      },      "projector": {
+      },
+      "projector": {
         "title": "Visão do Projetor",
         "description": "Abra uma janela separada otimizada para telas grandes e projetores.",
         "features": [

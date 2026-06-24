@@ -81,6 +81,9 @@ export interface PhysicalChip {
   textColor: string
   label: string
   quantity: number
+  // Manual color-up override: 1-based blind level at which to color up this
+  // denomination. null/undefined = auto (derived from the blind structure).
+  colorUpLevel?: number | null
 }
 
 export type Tab = 'timer' | 'players' | 'blinds' | 'prizes' | 'settings' | 'help'

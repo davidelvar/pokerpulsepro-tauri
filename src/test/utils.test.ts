@@ -19,8 +19,10 @@ import {
   playSound,
   checkForUpdates,
   CURRENT_VERSION,
+  applyPayoutRounding,
+  calculateColorUpSchedule,
 } from '../utils'
-import type { Tournament, Player } from '../types'
+import type { Tournament, Player, PhysicalChip, BlindLevel } from '../types'
 
 describe('formatTime', () => {
   it('formats 0 seconds as 00:00', () => {
@@ -165,6 +167,160 @@ describe('calculatePayouts', () => {
     const payouts = calculatePayouts(prizePool, 5)
     expect(payouts).toHaveLength(5)
     expect(payouts.reduce((sum, p) => sum + p.percentage, 0)).toBe(100)
+  })
+})
+
+describe('applyPayoutRounding', () => {
+  it('floors amounts when rounding is off (increment 0)', () => {
+    // $530 pool, 50/30/20 => 265 / 159 / 106
+    const payouts = applyPayoutRounding(530, [50, 30, 20], 0)
+    expect(payouts.map(p => p.amount)).toEqual([265, 159, 106])
+  })
+
+  it('treats negative increments as off', () => {
+    const payouts = applyPayoutRounding(530, [50, 30, 20], -5)
+    expect(payouts.map(p => p.amount)).toEqual([265, 159, 106])
+  })
+
+  it('rounds lower places to nearest $5 and keeps the pool exact', () => {
+    // $530: 2nd 159 -> 160, 3rd 106 -> 105, 1st absorbs remainder = 530-265 = 265
+    const payouts = applyPayoutRounding(530, [50, 30, 20], 5)
+    expect(payouts.map(p => p.amount)).toEqual([265, 160, 105])
+    expect(payouts.reduce((sum, p) => sum + p.amount, 0)).toBe(530)
+  })
+
+  it('rounds lower places to nearest $1 and keeps the pool exact', () => {
+    // $533: raw 266.5 / 159.9 / 106.6 -> round lower: 160 / 107, 1st = 533-267 = 266
+    const payouts = applyPayoutRounding(533, [50, 30, 20], 1)
+    expect(payouts[1].amount).toBe(160)
+    expect(payouts[2].amount).toBe(107)
+    expect(payouts.reduce((sum, p) => sum + p.amount, 0)).toBe(533)
+  })
+
+  it('makes every lower place a clean multiple of the increment', () => {
+    const payouts = applyPayoutRounding(1234, [50, 30, 20], 25)
+    for (const p of payouts.slice(1)) {
+      expect(p.amount % 25).toBe(0)
+    }
+    expect(payouts.reduce((sum, p) => sum + p.amount, 0)).toBe(1234)
+  })
+
+  it('preserves percentage and place metadata', () => {
+    const payouts = applyPayoutRounding(1000, [50, 30, 20], 5)
+    expect(payouts.map(p => p.place)).toEqual([1, 2, 3])
+    expect(payouts.map(p => p.percentage)).toEqual([50, 30, 20])
+  })
+
+  it('falls back to flooring if rounding the lower places overshoots the pool', () => {
+    // Degenerate structure where rounding the lower places past the pool would
+    // force a negative 1st place; the util must fall back to plain flooring.
+    const payouts = applyPayoutRounding(100, [10, 60, 60], 100)
+    expect(payouts.map(p => p.amount)).toEqual([10, 60, 60]) // floored, no negatives
+    expect(payouts.every(p => p.amount >= 0)).toBe(true)
+  })
+
+  it('handles an empty payout structure', () => {
+    expect(applyPayoutRounding(1000, [], 5)).toEqual([])
+  })
+
+  it('handles a single winner', () => {
+    const payouts = applyPayoutRounding(1000, [100], 5)
+    expect(payouts).toHaveLength(1)
+    expect(payouts[0].amount).toBe(1000)
+  })
+})
+
+describe('calculateColorUpSchedule', () => {
+  const chip = (value: number, over: Partial<PhysicalChip> = {}): PhysicalChip => ({
+    id: `c${value}`,
+    value,
+    color: '#000',
+    borderColor: '#000',
+    textColor: '#fff',
+    label: `${value}`,
+    quantity: 100,
+    ...over,
+  })
+  const lvl = (small_blind: number, big_blind: number, ante = 0, is_break = false): BlindLevel => ({
+    id: `l-${small_blind}-${big_blind}-${ante}${is_break ? '-b' : ''}`,
+    small_blind,
+    big_blind,
+    ante,
+    duration_minutes: 15,
+    is_break,
+  })
+
+  const chips = [chip(25), chip(100), chip(500)]
+  // L6 carries a 25 ante: the 25 chip is still needed there even though L4 already
+  // has SB >= 100. This is the case the old "first qualifying level" logic got wrong.
+  const structure = [
+    lvl(25, 50),
+    lvl(50, 100),
+    lvl(75, 150),
+    lvl(100, 200),
+    lvl(150, 300),
+    lvl(200, 400, 25),
+    lvl(300, 600),
+    lvl(500, 1000),
+  ]
+
+  it('colors up only after the last level that still needs the chip (looks past a later ante)', () => {
+    const schedule = calculateColorUpSchedule(chips, structure)
+    const e25 = schedule.find((e) => e.chipValue === 25)!
+    expect(e25.levelIndex).toBe(6) // level 7, after the L6 ante of 25
+    expect(e25.manual).toBe(false)
+  })
+
+  it('never colors up the largest denomination', () => {
+    const schedule = calculateColorUpSchedule(chips, structure)
+    expect(schedule.find((e) => e.chipValue === 500)).toBeUndefined()
+  })
+
+  it('honors a manual override and reports its blinds', () => {
+    const schedule = calculateColorUpSchedule(
+      [chip(25, { colorUpLevel: 4 }), chip(100), chip(500)],
+      structure
+    )
+    const e25 = schedule.find((e) => e.chipValue === 25)!
+    expect(e25.levelIndex).toBe(3) // level 4
+    expect(e25.manual).toBe(true)
+    expect(e25.smallBlind).toBe(100) // blinds taken from level 4
+  })
+
+  it('falls back to auto when the override points at a break level', () => {
+    const struct = [lvl(25, 50), lvl(50, 100), lvl(0, 0, 0, true), lvl(100, 200), lvl(300, 600)]
+    const schedule = calculateColorUpSchedule([chip(25, { colorUpLevel: 3 }), chip(100)], struct)
+    expect(schedule.find((e) => e.chipValue === 25)!.manual).toBe(false)
+  })
+
+  it('falls back to auto when the override is out of range', () => {
+    const schedule = calculateColorUpSchedule(
+      [chip(25, { colorUpLevel: 99 }), chip(100), chip(500)],
+      structure
+    )
+    expect(schedule.find((e) => e.chipValue === 25)!.manual).toBe(false)
+  })
+
+  it('skips breaks when choosing the auto level', () => {
+    // 25 (next 100) is needed at L1/L2; index 2 is a break, so it colors up at L4.
+    const struct = [lvl(25, 50), lvl(50, 100), lvl(0, 0, 0, true), lvl(100, 200), lvl(200, 400)]
+    const schedule = calculateColorUpSchedule([chip(25), chip(100)], struct)
+    expect(schedule.find((e) => e.chipValue === 25)!.levelIndex).toBe(3)
+  })
+
+  it('omits a chip that is needed through the final level', () => {
+    const struct = [lvl(25, 50), lvl(50, 100), lvl(75, 150)]
+    const schedule = calculateColorUpSchedule([chip(25), chip(100)], struct)
+    expect(schedule.find((e) => e.chipValue === 25)).toBeUndefined()
+  })
+
+  it('keeps a chip in play for non-multiple blinds (75 small blind out of 50s)', () => {
+    // Chips [25, 50, 100]: the 25 is needed at the 75 small blind (75 = 50 + 25)
+    // even though 75 is not < 50. Divisibility, not a plain "<", must catch this.
+    const struct = [lvl(25, 50), lvl(50, 100), lvl(75, 150), lvl(100, 200), lvl(200, 400)]
+    const schedule = calculateColorUpSchedule([chip(25), chip(50), chip(100)], struct)
+    const e25 = schedule.find((e) => e.chipValue === 25)!
+    expect(e25.levelIndex).toBe(3) // colors up at level 4, AFTER the 75 SB at level 3
   })
 })
 

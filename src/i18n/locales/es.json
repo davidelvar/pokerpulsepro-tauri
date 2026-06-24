@@ -161,7 +161,11 @@
     "assignAll": "Asignar Todos",
     "filtered": "filtrados",
     "noMatchingPlayers": "No hay jugadores coincidentes",
-    "quickSet": "Rápido"
+    "quickSet": "Rápido",
+    "reseatTitle": "Las mesas necesitan reequilibrarse",
+    "reseatDetail": "La mesa {{bigTable}} tiene {{bigCount}} jugadores, la mesa {{smallTable}} tiene {{smallCount}}.",
+    "rebalanceNow": "Reequilibrar",
+    "reseatDismiss": "Descartar"
   },
   "blinds": {
     "title": "Estructura de Ciegas",
@@ -244,7 +248,10 @@
     "dragToAdjust": "Arrastra los divisores o deslizadores para ajustar",
     "valid": "Válido",
     "exportTemplate": "Exportar a archivo",
-    "importTemplate": "Importar desde archivo"
+    "importTemplate": "Importar desde archivo",
+    "rounding": "Redondear premios",
+    "roundingOff": "No",
+    "roundingHint": "Cada premio se redondea al importe más cercano; el resto va al 1.er puesto."
   },
   "settings": {
     "title": "Ajustes",
@@ -310,7 +317,6 @@
     "colorUpScheduleDesc": "Cuándo retirar denominaciones menores según tu estructura de ciegas",
     "colorUpAt": "Color-up en Nivel {{level}}",
     "colorUpDone": "Hecho",
-    "noColorUps": "No se necesitan color-ups con la estructura de ciegas actual",
     "sound": "Ajustes de Sonido",
     "levelChangeSound": "Sonido de Cambio de Nivel",
     "levelChangeSoundDesc": "Reproducir un sonido cuando cambia el nivel",
@@ -361,7 +367,11 @@
     "invalidFile": "Archivo Inválido",
     "invalidFileMsg": "El archivo seleccionado no es un archivo JSON válido",
     "tournamentComplete": "Torneo Completado",
-    "tournamentSaved": "¡El torneo se ha guardado en el historial!"
+    "tournamentSaved": "¡El torneo se ha guardado en el historial!",
+    "colorUpAuto": "Auto",
+    "colorUpManual": "Manual",
+    "colorUpStaysInPlay": "Permanece en juego (sin retirada)",
+    "colorUpLevelFor": "Nivel de retirada para {{chip}}"
   },
   "help": {
     "title": "Clasificación de Manos de Póker",
@@ -519,7 +529,8 @@
           "Muestra asignaciones de jugadores",
           "Soporta múltiples estructuras de pago"
         ]
-      },      "settings": {
+      },
+      "settings": {
         "title": "Configuración",
         "description": "Personaliza tu experiencia de torneo con configuraciones completas.",
         "features": [
@@ -528,7 +539,8 @@
           "Valores predeterminados del torneo",
           "Selección de idioma"
         ]
-      },      "projector": {
+      },
+      "projector": {
         "title": "Vista de Proyector",
         "description": "Abre una ventana separada optimizada para pantallas grandes y proyectores.",
         "features": [

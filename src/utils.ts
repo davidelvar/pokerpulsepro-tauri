@@ -17,6 +17,53 @@ export function calculatePrizePool(tournament: Tournament): number {
   return (totalBuyins * tournament.buyin_amount) + (totalRebuys * tournament.rebuy_amount) + (totalAddons * tournament.addon_amount)
 }
 
+export interface Payout {
+  place: number
+  percentage: number
+  amount: number
+}
+
+// Standard rounding increments offered in the Prizes tab (0 = no rounding).
+export const PAYOUT_ROUNDING_INCREMENTS = [0, 1, 5, 10, 25, 100]
+
+// Round each payout to the nearest increment so organizers don't have to hand
+// out small change. Places 2..N are rounded to a clean multiple; 1st place
+// absorbs the remainder so the payouts still sum exactly to the prize pool.
+// increment <= 0 means "off" and preserves the previous floor behavior.
+export function applyPayoutRounding(
+  prizePool: number,
+  percentages: number[],
+  increment: number
+): Payout[] {
+  const raw: Payout[] = percentages.map((pct, i) => ({
+    place: i + 1,
+    percentage: pct,
+    amount: (prizePool * pct) / 100,
+  }))
+
+  if (!increment || increment <= 0 || raw.length === 0) {
+    return raw.map(p => ({ ...p, amount: Math.floor(p.amount) }))
+  }
+
+  const rounded = raw.map(p => ({
+    ...p,
+    amount: Math.round(p.amount / increment) * increment,
+  }))
+
+  // 1st place takes whatever is left after the lower places are rounded, keeping
+  // the total equal to the prize pool.
+  const others = rounded.slice(1).reduce((sum, p) => sum + p.amount, 0)
+  const first = prizePool - others
+
+  // If rounding the lower places overshot the pool, fall back to plain flooring.
+  if (first < 0) {
+    return raw.map(p => ({ ...p, amount: Math.floor(p.amount) }))
+  }
+
+  rounded[0] = { ...rounded[0], amount: first }
+  return rounded
+}
+
 export function calculatePayouts(prizePool: number, places: number = 3): { place: number; amount: number; percentage: number }[] {
   const percentages = places === 1 
     ? [100]
@@ -379,6 +426,44 @@ export function getTableBalanceSuggestions(
   return suggestions
 }
 
+// Reseat players to balance occupied tables: repeatedly move a player from the
+// largest table to the smallest occupied table until no two occupied tables
+// differ by more than one player. Empty tables are left alone (that's a
+// consolidation concern, not a balancing one).
+export function autoBalanceTables(
+  players: Player[],
+  tableCount: number,
+  seatsPerTable: number
+): Player[] {
+  let result = players
+
+  // Cap iterations to total seats as a safety net against an infinite loop.
+  const maxMoves = tableCount * seatsPerTable
+  for (let move = 0; move < maxMoves; move++) {
+    const occupied = getTableInfo(result, tableCount, seatsPerTable)
+      .filter(table => table.players.length > 0)
+    if (occupied.length < 2) break
+
+    const sizes = occupied.map(table => table.players.length)
+    const maxSize = Math.max(...sizes)
+    const minSize = Math.min(...sizes)
+    if (maxSize - minSize <= 1) break
+
+    const largest = occupied.find(table => table.players.length === maxSize)!
+    const smallest = occupied.reduce((a, b) => (b.players.length < a.players.length ? b : a))
+
+    const seat = getNextAvailableSeat(result, smallest.tableNumber, seatsPerTable)
+    if (seat === null) break
+
+    // Move the player in the highest seat of the largest table (players are
+    // sorted by seat number in getTableInfo).
+    const mover = largest.players[largest.players.length - 1]
+    result = movePlayerToSeat(result, mover.id, smallest.tableNumber, seat)
+  }
+
+  return result
+}
+
 // Move a player to a specific table and seat
 export function movePlayerToSeat(
   players: Player[], 
@@ -416,6 +501,20 @@ export interface ColorUpEntry {
   levelIndex: number
   smallBlind: number
   bigBlind: number
+  manual: boolean // true when the level came from a per-chip override
+}
+
+// A level still needs a chip below `nextValue` when a forced bet can't be paid
+// in exact multiples of `nextValue` — i.e. it leaves change smaller than the
+// next denomination up. Since smaller chips are colored up first, once they're
+// gone the only way to make a non-multiple amount (e.g. a 75 small blind out of
+// 50s) is to keep this chip. Using divisibility (not just `< nextValue`) catches
+// non-round blinds/antes like 75 or 150. Breaks never need chips.
+function levelNeedsChipBelow(level: BlindLevel, nextValue: number): boolean {
+  if (level.is_break || nextValue <= 0) return false
+  const smallBlindNeeds = level.small_blind > 0 && level.small_blind % nextValue !== 0
+  const anteNeeds = level.ante > 0 && level.ante % nextValue !== 0
+  return smallBlindNeeds || anteNeeds
 }
 
 export function calculateColorUpSchedule(
@@ -425,30 +524,57 @@ export function calculateColorUpSchedule(
   const sorted = [...chips].sort((a, b) => a.value - b.value)
   const schedule: ColorUpEntry[] = []
 
+  const firstNonBreakFrom = (start: number): number => {
+    for (let i = start; i < blindStructure.length; i++) {
+      if (!blindStructure[i].is_break) return i
+    }
+    return -1
+  }
+
+  // Every denomination except the largest can be colored up.
   for (let c = 0; c < sorted.length - 1; c++) {
     const chip = sorted[c]
     const nextChip = sorted[c + 1]
     if (!nextChip) continue
 
-    for (let i = 0; i < blindStructure.length; i++) {
-      const level = blindStructure[i]
-      if (level.is_break) continue
+    let levelIndex = -1
+    let manual = false
 
-      const smallBlindOk = level.small_blind >= nextChip.value
-      const anteOk = level.ante === 0 || level.ante >= nextChip.value
-
-      if (smallBlindOk && anteOk) {
-        schedule.push({
-          chipValue: chip.value,
-          color: chip.color,
-          borderColor: chip.borderColor,
-          textColor: chip.textColor,
-          levelIndex: i,
-          smallBlind: level.small_blind,
-          bigBlind: level.big_blind,
-        })
-        break
+    const override = chip.colorUpLevel
+    if (
+      typeof override === 'number' &&
+      override >= 1 &&
+      override <= blindStructure.length &&
+      !blindStructure[override - 1].is_break
+    ) {
+      // Honor the manual override when it points at a real (non-break) level.
+      levelIndex = override - 1
+      manual = true
+    } else {
+      // Auto: color up at the first level from which this chip is never needed
+      // again — i.e. the level right after the last level that still needs it.
+      // This looks ahead so a later small ante won't be ignored.
+      let lastNeeded = -1
+      for (let i = 0; i < blindStructure.length; i++) {
+        if (levelNeedsChipBelow(blindStructure[i], nextChip.value)) lastNeeded = i
       }
+      levelIndex = firstNonBreakFrom(lastNeeded + 1)
+      // If the chip is needed through the final level, levelIndex is -1 and it
+      // never gets colored up.
+    }
+
+    if (levelIndex >= 0 && levelIndex < blindStructure.length) {
+      const level = blindStructure[levelIndex]
+      schedule.push({
+        chipValue: chip.value,
+        color: chip.color,
+        borderColor: chip.borderColor,
+        textColor: chip.textColor,
+        levelIndex,
+        smallBlind: level.small_blind,
+        bigBlind: level.big_blind,
+        manual,
+      })
     }
   }
 

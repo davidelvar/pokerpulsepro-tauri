@@ -161,7 +161,11 @@
     "assignAll": "Assign All",
     "filtered": "filtered",
     "noMatchingPlayers": "No matching players",
-    "quickSet": "Quick"
+    "quickSet": "Quick",
+    "reseatTitle": "Tables need rebalancing",
+    "reseatDetail": "Table {{bigTable}} has {{bigCount}} players, Table {{smallTable}} has {{smallCount}}.",
+    "rebalanceNow": "Rebalance",
+    "reseatDismiss": "Dismiss"
   },
   "blinds": {
     "title": "Blind Structure",
@@ -244,7 +248,10 @@
     "dragToAdjust": "Drag dividers or sliders to adjust",
     "valid": "Valid",
     "exportTemplate": "Export to file",
-    "importTemplate": "Import from file"
+    "importTemplate": "Import from file",
+    "rounding": "Round payouts",
+    "roundingOff": "Off",
+    "roundingHint": "Each prize rounds to the nearest amount; the remainder goes to 1st place."
   },
   "settings": {
     "title": "Settings",
@@ -310,7 +317,6 @@
     "colorUpScheduleDesc": "When to remove smaller denominations based on your blind structure",
     "colorUpAt": "Color up at Level {{level}}",
     "colorUpDone": "Done",
-    "noColorUps": "No color-ups needed with current blind structure",
     "sound": "Sound Settings",
     "levelChangeSound": "Level Change Sound",
     "levelChangeSoundDesc": "Play a sound when the level changes",
@@ -361,7 +367,11 @@
     "invalidFile": "Invalid File",
     "invalidFileMsg": "The selected file is not a valid JSON file",
     "tournamentComplete": "Tournament Complete",
-    "tournamentSaved": "Tournament has been saved to history!"
+    "tournamentSaved": "Tournament has been saved to history!",
+    "colorUpAuto": "Auto",
+    "colorUpManual": "Manual",
+    "colorUpStaysInPlay": "Stays in play (no color-up)",
+    "colorUpLevelFor": "Color-up level for {{chip}}"
   },
   "help": {
     "title": "Poker Hand Rankings",
