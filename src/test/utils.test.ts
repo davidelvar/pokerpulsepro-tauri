@@ -473,9 +473,9 @@ describe('CURRENT_VERSION', () => {
     expect(CURRENT_VERSION).toMatch(/^\d+\.\d+\.\d+$/)
   })
 
-  it('is version 1.3.0', async () => {
+  it('is version 1.3.1', async () => {
     const { CURRENT_VERSION } = await import('../utils')
-    expect(CURRENT_VERSION).toBe('1.3.0')
+    expect(CURRENT_VERSION).toBe('1.3.1')
   })
 })
 
@@ -1024,6 +1024,6 @@ describe('CURRENT_VERSION', () => {
   })
 
   it('is the expected version', () => {
-    expect(CURRENT_VERSION).toBe('1.3.0')
+    expect(CURRENT_VERSION).toBe('1.3.1')
   })
 })
