@@ -1048,6 +1048,19 @@ describe('Prizes Component', () => {
       expect(screen.getByText('Bubble')).toBeInTheDocument()
     })
 
+    it('shows the last active player as first place', () => {
+      const tournament = createMockTournament({
+        players: [
+          { id: 'p1', name: 'Champion', buyins: 1, rebuys: 0, addons: 0, eliminated: false, placement: null, tableNumber: 1, seatNumber: 1 },
+          { id: 'p2', name: 'Second', buyins: 1, rebuys: 0, addons: 0, eliminated: true, placement: 2, tableNumber: 1, seatNumber: 2 },
+        ],
+      })
+      render(<Prizes tournament={tournament} />)
+
+      expect(screen.getByText('Champion')).toBeInTheDocument()
+      expect(screen.getAllByText('$100').length).toBeGreaterThan(0)
+    })
+
     it('shows no eliminations message when no players eliminated', () => {
       const tournament = createMockTournament({
         players: [
