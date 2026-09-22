@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Tournament } from '../types'
-import { calculatePrizePool, formatCurrency, getEliminatedPlayers, generateId, applyPayoutRounding, PAYOUT_ROUNDING_INCREMENTS } from '../utils'
+import { calculatePrizePool, formatCurrency, getActivePlayers, generateId, applyPayoutRounding, PAYOUT_ROUNDING_INCREMENTS } from '../utils'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs'
 
@@ -62,7 +62,17 @@ export function Prizes({ tournament }: PrizesProps) {
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null)
 
   const prizePool = calculatePrizePool(tournament)
-  const eliminatedPlayers = getEliminatedPlayers(tournament.players)
+  const activePlayers = getActivePlayers(tournament.players)
+  // The last active player is the champion once the field had at least two
+  // players and everyone else is out. Mirrors the Timer's final-standings rule.
+  const champion =
+    tournament.players.length >= 2 && activePlayers.length === 1 && activePlayers[0].placement == null
+      ? [{ ...activePlayers[0], placement: 1 }]
+      : []
+  const placedPlayers = tournament.players
+    .filter(player => player.placement !== null && player.placement !== undefined)
+    .concat(champion)
+    .sort((a, b) => (a.placement ?? 0) - (b.placement ?? 0))
 
   // Load saved templates and payout config from localStorage
   useEffect(() => {
@@ -758,9 +768,9 @@ export function Prizes({ tournament }: PrizesProps) {
         <div className="card p-6">
           <h3 className="text-lg font-semibold text-themed-primary mb-4">{t('prizes.finalStandings')}</h3>
           
-          {eliminatedPlayers.length > 0 ? (
+          {placedPlayers.length > 0 ? (
             <div className="space-y-2">
-              {eliminatedPlayers.slice(0, 8).map((player) => {
+              {placedPlayers.slice(0, 8).map((player) => {
                 const payout = payouts.find(p => p.place === player.placement)
                 return (
                   <div

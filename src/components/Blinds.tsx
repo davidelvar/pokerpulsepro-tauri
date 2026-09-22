@@ -847,7 +847,7 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
                         className="input w-24"
                       />
                     ) : (
-                      <span className="font-medium">{level.small_blind.toLocaleString()}</span>
+                      <span className="font-medium text-themed-primary">{level.small_blind.toLocaleString()}</span>
                     )}
                   </td>
                   <td className="p-4">
@@ -860,7 +860,7 @@ export function Blinds({ tournament, setTournament }: BlindsProps) {
                           className="input w-24"
                         />
                       ) : (
-                        <span className="font-medium">{level.big_blind.toLocaleString()}</span>
+                        <span className="font-medium text-themed-primary">{level.big_blind.toLocaleString()}</span>
                       )
                     )}
                   </td>

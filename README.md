@@ -4,10 +4,10 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
 
 🌐 **[pokerpulsepro.com](https://pokerpulsepro.com)**
 
-![Version](https://img.shields.io/badge/Version-1.3.0-blue)
+![Version](https://img.shields.io/badge/Version-1.3.1-blue)
 ![PokerPulsePro](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Tests](https://img.shields.io/badge/Tests-926%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-950%20passing-brightgreen)
 
 ![PokerPulsePro Preview](docs/preview.png)
 
@@ -372,6 +372,20 @@ MIT License - feel free to use this for your home games!
 Contributions welcome! Please open an issue or PR.
 
 ## 📋 Changelog
+
+### v1.3.1
+- **🔊 Fix Custom Level-Change Sound** - Picking your own alarm file now actually plays it
+  - The file picker took a browser fallback path inside the desktop app, producing a temporary reference that went dead as soon as the app was closed
+  - The selected file is now served over Tauri's asset protocol instead of a `file://` URL, which the webview blocks
+  - Previously saved custom sounds are migrated on launch; any that can't be recovered fall back to the bell instead of playing nothing
+- **🎨 Fix Missing Blinds in Light Theme** - Small blind and big blind columns were invisible on the Blinds tab
+  - A hardcoded white text color on `<body>` overrode the theme, so any text without an explicit color rendered white-on-white in light mode
+  - Values were there all along — they only appeared while editing because the input styles set their own color
+  - Also fixes the keyboard-shortcut keycaps in Settings, which were unreadable in light mode for the same reason
+- **🏆 Fix Champion Missing From Final Standings** - The Prize tab now lists the last player standing as 1st place
+  - Standings were built from eliminated players only, so the winner never appeared even though the first-place payout was configured
+  - The sole remaining player is now shown with the 1st-place medal and payout, matching the Timer's winner rule
+  - Thanks to [@Hakzai](https://github.com/Hakzai) for the report and fix (#5, #6)
 
 ### v1.3.0
 - **♟️ Table Rebalancing Prompt** - Get nudged to reseat players when tables go uneven

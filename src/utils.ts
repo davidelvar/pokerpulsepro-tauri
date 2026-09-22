@@ -106,6 +106,13 @@ export function getAverageStack(tournament: Tournament): number {
   return Math.floor(totalChips / activePlayers.length)
 }
 
+// Check if running inside the Tauri webview.
+// Tauri v2 exposes __TAURI_INTERNALS__; __TAURI__ only exists when
+// withGlobalTauri is enabled (it is not), so checking it alone always fails.
+export function isTauriRuntime(): boolean {
+  return typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
+}
+
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2)
 }
@@ -134,7 +141,7 @@ export function playSound(type: 'levelChange' | 'warning' | 'break'): void {
 }
 
 // GitHub update checker
-export const CURRENT_VERSION = '1.3.0'
+export const CURRENT_VERSION = '1.3.1'
 const GITHUB_REPO = 'davidelvar/pokerpulsepro-tauri'
 const UPDATE_CHECK_KEY = 'pokerpulse_update_check'
 const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000 // 1 hour in milliseconds

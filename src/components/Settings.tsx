@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import type { Tournament, SoundSettings, ThemeSettings, ThemeMode, AccentColor, TournamentHistoryEntry, PhysicalChip } from '../types'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs'
-import { formatCurrency, calculateColorUpSchedule } from '../utils'
+import { convertFileSrc } from '@tauri-apps/api/core'
+import { formatCurrency, calculateColorUpSchedule, isTauriRuntime } from '../utils'
 import { AlertModal, ConfirmModal, PromptModal } from './Modal'
 import { SUPPORTED_LANGUAGES } from '../i18n'
 
@@ -30,7 +31,7 @@ type ModalState =
   | { type: 'prompt'; title: string; message?: string; placeholder?: string; onSubmit: (value: string) => void }
 
 // Check if running in Tauri
-const isTauri = typeof window !== 'undefined' && '__TAURI__' in window
+const isTauri = isTauriRuntime()
 
 const STORAGE_KEY_HISTORY = 'pokerpulse_tournament_history'
 const STORAGE_KEY_CUSTOM_CHIP_SETS = 'pokerpulse_custom_chip_sets'
@@ -257,11 +258,12 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
           }]
         })
         if (selected && typeof selected === 'string') {
-          // Convert to file URL for audio playback
+          // The webview blocks file:// URLs -- convertFileSrc maps the path onto
+          // the asset protocol, which is what the CSP and assetProtocol scope allow.
           setSoundSettings({
             ...soundSettings,
             soundType: 'custom',
-            customSoundPath: `file://${selected}`
+            customSoundPath: convertFileSrc(selected)
           })
         }
       } catch (err) {
@@ -1040,27 +1042,27 @@ export function Settings({ tournament, setTournament, soundSettings, setSoundSet
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
               <span className="text-themed-secondary">{t('settings.playPause')}</span>
-              <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">Space</kbd>
+              <kbd className="px-2 py-1 bg-themed-secondary rounded text-themed-primary font-mono text-xs">Space</kbd>
             </div>
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
               <span className="text-themed-secondary">{t('settings.prevLevel')}</span>
-              <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">←</kbd>
+              <kbd className="px-2 py-1 bg-themed-secondary rounded text-themed-primary font-mono text-xs">←</kbd>
             </div>
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
               <span className="text-themed-secondary">{t('settings.nextLevel')}</span>
-              <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">→</kbd>
+              <kbd className="px-2 py-1 bg-themed-secondary rounded text-themed-primary font-mono text-xs">→</kbd>
             </div>
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
               <span className="text-themed-secondary">{t('settings.addMin')}</span>
-              <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">+</kbd>
+              <kbd className="px-2 py-1 bg-themed-secondary rounded text-themed-primary font-mono text-xs">+</kbd>
             </div>
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
               <span className="text-themed-secondary">{t('settings.removeMin')}</span>
-              <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">-</kbd>
+              <kbd className="px-2 py-1 bg-themed-secondary rounded text-themed-primary font-mono text-xs">-</kbd>
             </div>
             <div className="flex items-center justify-between p-2 bg-themed-tertiary rounded">
               <span className="text-themed-secondary">{t('settings.fullscreen')}</span>
-              <kbd className="px-2 py-1 bg-themed-secondary rounded text-zinc-200 font-mono text-xs">F</kbd>
+              <kbd className="px-2 py-1 bg-themed-secondary rounded text-themed-primary font-mono text-xs">F</kbd>
             </div>
           </div>
         </div>

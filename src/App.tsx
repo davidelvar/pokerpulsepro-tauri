@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Tournament, Tab, SoundSettings, ThemeSettings, TournamentHistoryEntry, PhysicalChip } from './types'
 import { mockApi } from './api'
-import { calculatePrizePool, checkForUpdates, UpdateInfo, applyPayoutRounding } from './utils'
+import { calculatePrizePool, checkForUpdates, UpdateInfo, applyPayoutRounding, isTauriRuntime } from './utils'
 import { ReseatBanner } from './components/ReseatBanner'
 import { Timer } from './components/Timer'
 import { Players } from './components/Players'
@@ -16,11 +16,10 @@ import { ConfirmModal } from './components/Modal'
 import { Onboarding } from './components/Onboarding'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { emit, listen } from '@tauri-apps/api/event'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke, convertFileSrc } from '@tauri-apps/api/core'
 
 // Check if running in Tauri - use function to check at runtime
-// Tauri v2 uses __TAURI_INTERNALS__, v1 used __TAURI__
-const checkIsTauri = () => typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
+const checkIsTauri = isTauriRuntime
 const isTauri = checkIsTauri()
 
 const STORAGE_KEYS = {
@@ -81,17 +80,39 @@ function loadSavedTournament(): Tournament {
   return mockApi.tournament
 }
 
+// Older builds stored the custom sound as a `file://` URL (blocked by the webview)
+// or, when Tauri detection failed, as a `blob:` URL (dead after a restart).
+// Neither can play, so repair what we can and drop the rest.
+function migrateCustomSoundPath(path: unknown): string | null {
+  if (typeof path !== 'string' || path === '') return null
+  if (path.startsWith('blob:')) return null
+  if (path.startsWith('file://')) {
+    if (!isTauri) return null
+    try {
+      return convertFileSrc(decodeURI(path.slice('file://'.length)))
+    } catch {
+      return null
+    }
+  }
+  return path
+}
+
 function loadSavedSoundSettings(): SoundSettings {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.soundSettings)
     if (saved) {
       const parsed = JSON.parse(saved)
+      const customSoundPath = migrateCustomSoundPath(parsed.customSoundPath)
       // Migrate old data - add missing fields with defaults
       return {
         ...defaultSoundSettings,
         ...parsed,
-        // Migrate: if user had 'localized' sound type, switch to bell + enable voice
-        soundType: parsed.soundType === 'localized' ? 'bell' : (parsed.soundType ?? 'bell'),
+        customSoundPath,
+        // Migrate: if user had 'localized' sound type, switch to bell + enable voice.
+        // A custom sound we had to discard also falls back to the bell, not silence.
+        soundType: parsed.soundType === 'localized' ? 'bell'
+          : parsed.soundType === 'custom' && !customSoundPath ? 'bell'
+          : (parsed.soundType ?? 'bell'),
         voiceEnabled: parsed.soundType === 'localized' ? true : (parsed.voiceEnabled ?? false),
         warningEnabled: parsed.warningEnabled ?? true,
         warningAt60: parsed.warningAt60 ?? true,
