@@ -694,8 +694,8 @@ describe('Prizes Component', () => {
       const tournament = createMockTournament({
         players: [
           { id: 'p1', name: 'Winner', buyins: 1, rebuys: 0, addons: 0, eliminated: false, tableNumber: 1, seatNumber: 1 },
-          { id: 'p2', name: 'Second Place', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 2, tableNumber: 1, seatNumber: 2 },
-          { id: 'p3', name: 'Third Place', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 1, tableNumber: 1, seatNumber: 3 },
+          { id: 'p2', name: 'Second Place', buyins: 1, rebuys: 0, addons: 0, eliminated: true, placement: 2, tableNumber: 1, seatNumber: 2 },
+          { id: 'p3', name: 'Third Place', buyins: 1, rebuys: 0, addons: 0, eliminated: true, placement: 3, tableNumber: 1, seatNumber: 3 },
         ],
       })
       render(<Prizes tournament={tournament} />)
@@ -709,9 +709,9 @@ describe('Prizes Component', () => {
       const tournament = createMockTournament({
         players: [
           { id: 'p1', name: 'Still Playing', buyins: 1, rebuys: 0, addons: 0, eliminated: false, tableNumber: 1, seatNumber: 1 },
-          { id: 'p2', name: 'Money Winner', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 3, tableNumber: 1, seatNumber: 2 },
-          { id: 'p3', name: 'Bubble Boy', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 2, tableNumber: 1, seatNumber: 3 },
-          { id: 'p4', name: 'First Out', buyins: 1, rebuys: 0, addons: 0, eliminated: true, eliminationOrder: 1, tableNumber: 1, seatNumber: 4 },
+          { id: 'p2', name: 'Money Winner', buyins: 1, rebuys: 0, addons: 0, eliminated: true, placement: 2, tableNumber: 1, seatNumber: 2 },
+          { id: 'p3', name: 'Bubble Boy', buyins: 1, rebuys: 0, addons: 0, eliminated: true, placement: 3, tableNumber: 1, seatNumber: 3 },
+          { id: 'p4', name: 'First Out', buyins: 1, rebuys: 0, addons: 0, eliminated: true, placement: 4, tableNumber: 1, seatNumber: 4 },
         ],
       })
       render(<Prizes tournament={tournament} />)
@@ -1059,6 +1059,18 @@ describe('Prizes Component', () => {
 
       expect(screen.getByText('Champion')).toBeInTheDocument()
       expect(screen.getAllByText('$100').length).toBeGreaterThan(0)
+    })
+
+    it('does not crown a lone registered player before anyone is eliminated', () => {
+      const tournament = createMockTournament({
+        players: [
+          { id: 'p1', name: 'Only Player', buyins: 1, rebuys: 0, addons: 0, eliminated: false, placement: null, tableNumber: 1, seatNumber: 1 },
+        ],
+      })
+      render(<Prizes tournament={tournament} />)
+
+      expect(screen.getByText('No eliminations yet')).toBeInTheDocument()
+      expect(screen.queryByText('Only Player')).not.toBeInTheDocument()
     })
 
     it('shows no eliminations message when no players eliminated', () => {

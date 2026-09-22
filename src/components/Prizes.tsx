@@ -63,13 +63,15 @@ export function Prizes({ tournament }: PrizesProps) {
 
   const prizePool = calculatePrizePool(tournament)
   const activePlayers = getActivePlayers(tournament.players)
+  // The last active player is the champion once the field had at least two
+  // players and everyone else is out. Mirrors the Timer's final-standings rule.
+  const champion =
+    tournament.players.length >= 2 && activePlayers.length === 1 && activePlayers[0].placement == null
+      ? [{ ...activePlayers[0], placement: 1 }]
+      : []
   const placedPlayers = tournament.players
     .filter(player => player.placement !== null && player.placement !== undefined)
-    .concat(
-      activePlayers.length === 1 && activePlayers[0].placement == null
-        ? [{ ...activePlayers[0], placement: 1 }]
-        : []
-    )
+    .concat(champion)
     .sort((a, b) => (a.placement ?? 0) - (b.placement ?? 0))
 
   // Load saved templates and payout config from localStorage
