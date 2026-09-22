@@ -36,7 +36,7 @@
       "endpoints": [
         "https://github.com/davidelvar/pokerpulsepro-tauri/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE4M0RGQUFENjYyMkRDREUKUldUZTNDSm1yZm85cUFpeUN5a3F1b29mSGNoeFBZbUc1bTN5S2pUcmVGYUpzQzFmd1QvZVkvRmsK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI5QkNCMEQyRDg4RUUxRkUKUldUKzRZN1kwckM4dVpTVldqa3BiMEw3ckQwc1l0M29yNTZTNzVLT281TmZ4MjJWR1RuVjlla2gK"
     }
   },
   "bundle": {
