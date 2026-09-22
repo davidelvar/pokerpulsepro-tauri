@@ -1,12 +1,18 @@
 name: Updater signing check
 
-# Manual dry run: builds one platform exactly like the release workflow does,
+# Dry run (manual, or on PRs that touch signing config): builds one platform
+# exactly like the release workflow does,
 # then checks that the bundler produced an updater signature and that it was
 # made with the key pair whose public half is in tauri.conf.json.
 # Uploads nothing to a release.
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src-tauri/tauri.conf.json'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/updater-signing-check.yml'
 
 jobs:
   check:
