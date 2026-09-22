@@ -14,8 +14,15 @@ on:
       - '.github/workflows/release.yml'
       - '.github/workflows/updater-signing-check.yml'
 
+concurrency:
+  group: updater-signing-check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
+    # Fork PRs don't receive repository secrets, so the signing step can't run
+    # there. Skip instead of failing; maintainers run it on the merge branch.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
