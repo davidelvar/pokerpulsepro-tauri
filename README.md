@@ -4,10 +4,10 @@ A beautiful, minimalistic poker tournament timer and manager built with Tauri (R
 
 🌐 **[pokerpulsepro.com](https://pokerpulsepro.com)**
 
-![Version](https://img.shields.io/badge/Version-1.3.1-blue)
+![Version](https://img.shields.io/badge/Version-1.3.2-blue)
 ![PokerPulsePro](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Tests](https://img.shields.io/badge/Tests-950%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-952%20passing-brightgreen)
 
 ![PokerPulsePro Preview](docs/preview.png)
 
@@ -372,6 +372,16 @@ MIT License - feel free to use this for your home games!
 Contributions welcome! Please open an issue or PR.
 
 ## 📋 Changelog
+
+### v1.3.2
+- **🔄 In-App Updates Now Work** - Updates install from inside the app instead of sending you to the website
+  - Releases are now signed and publish the updater manifest the app polls; that manifest had been missing since v1.1.0, so the built-in updater never had anything to install
+  - The update check also detected the desktop runtime with the same broken check fixed for the sound picker in v1.3.1, so it always fell back to the "download from the website" path
+  - **Heads-up:** v1.3.1 and earlier can't install this release automatically because it's signed with a new key. Download it once from [pokerpulsepro.com](https://pokerpulsepro.com); every update after that installs in-app
+- **🔒 Security Updates** - Dependency refresh resolving 42 of 43 Dependabot alerts
+  - Tauri core 2.9 → 2.11 (fixes an IPC origin-confusion advisory) plus OpenSSL, tar, time and other runtime crates
+  - Build tooling moved to Vite 7 with current vitest, esbuild and postcss; nothing from these ships in the app
+- **🛠️ Release Tooling** - New `updater-signing-check` workflow dry-runs a signed build and verifies the signature matches the app's public key before a release
 
 ### v1.3.1
 - **🔊 Fix Custom Level-Change Sound** - Picking your own alarm file now actually plays it

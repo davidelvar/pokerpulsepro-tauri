@@ -18,11 +18,15 @@ import {
   getNextAvailableSeat,
   playSound,
   checkForUpdates,
+  downloadAndInstallUpdate,
   CURRENT_VERSION,
   applyPayoutRounding,
   calculateColorUpSchedule,
 } from '../utils'
 import type { Tournament, Player, PhysicalChip, BlindLevel } from '../types'
+
+vi.mock('@tauri-apps/plugin-updater', () => ({ check: vi.fn() }))
+vi.mock('@tauri-apps/plugin-process', () => ({ relaunch: vi.fn() }))
 
 describe('formatTime', () => {
   it('formats 0 seconds as 00:00', () => {
@@ -473,9 +477,9 @@ describe('CURRENT_VERSION', () => {
     expect(CURRENT_VERSION).toMatch(/^\d+\.\d+\.\d+$/)
   })
 
-  it('is version 1.3.1', async () => {
+  it('is version 1.3.2', async () => {
     const { CURRENT_VERSION } = await import('../utils')
-    expect(CURRENT_VERSION).toBe('1.3.1')
+    expect(CURRENT_VERSION).toBe('1.3.2')
   })
 })
 
@@ -1018,12 +1022,54 @@ describe('checkForUpdates', () => {
   })
 })
 
+describe('updater inside the Tauri runtime', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null)
+    ;(window as any).__TAURI_INTERNALS__ = {}
+    global.fetch = vi.fn() as any
+  })
+
+  afterEach(() => {
+    delete (window as any).__TAURI_INTERNALS__
+    vi.restoreAllMocks()
+  })
+
+  it('checks for updates through the Tauri updater instead of the GitHub API', async () => {
+    const { check } = await import('@tauri-apps/plugin-updater')
+    ;(check as ReturnType<typeof vi.fn>).mockResolvedValue({ version: '9.9.9', body: 'Signed release' })
+
+    const result = await checkForUpdates()
+
+    expect(check).toHaveBeenCalled()
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(result?.updateAvailable).toBe(true)
+    expect(result?.latestVersion).toBe('9.9.9')
+    expect(result?.tauriUpdate).toBeDefined()
+  })
+
+  it('installs the update in-app and relaunches instead of opening the website', async () => {
+    const { check } = await import('@tauri-apps/plugin-updater')
+    const { relaunch } = await import('@tauri-apps/plugin-process')
+    const downloadAndInstall = vi.fn().mockResolvedValue(undefined)
+    ;(check as ReturnType<typeof vi.fn>).mockResolvedValue({ version: '9.9.9', downloadAndInstall })
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+
+    const ok = await downloadAndInstallUpdate({ updateAvailable: true, latestVersion: '9.9.9', downloadUrl: 'https://www.pokerpulsepro.com' })
+
+    expect(ok).toBe(true)
+    expect(downloadAndInstall).toHaveBeenCalled()
+    expect(relaunch).toHaveBeenCalled()
+    expect(openSpy).not.toHaveBeenCalled()
+  })
+})
+
 describe('CURRENT_VERSION', () => {
   it('is a valid semver string', () => {
     expect(CURRENT_VERSION).toMatch(/^\d+\.\d+\.\d+$/)
   })
 
   it('is the expected version', () => {
-    expect(CURRENT_VERSION).toBe('1.3.1')
+    expect(CURRENT_VERSION).toBe('1.3.2')
   })
 })
