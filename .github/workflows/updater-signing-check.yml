@@ -1,0 +1,85 @@
+name: Updater signing check
+
+# Dry run (manual, or on PRs that touch signing config): builds one platform
+# exactly like the release workflow does,
+# then checks that the bundler produced an updater signature and that it was
+# made with the key pair whose public half is in tauri.conf.json.
+# Uploads nothing to a release.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src-tauri/tauri.conf.json'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/updater-signing-check.yml'
+
+concurrency:
+  group: updater-signing-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # Fork PRs don't receive repository secrets, so the signing step can't run
+    # there. Skip instead of failing; maintainers run it on the merge branch.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build signed bundles (no release)
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run tauri build -- --target aarch64-apple-darwin
+
+      - name: Verify signature matches configured public key
+        run: |
+          python3 - <<'PY'
+          import base64, glob, json, sys
+
+          conf = json.load(open('src-tauri/tauri.conf.json'))
+          pub = base64.b64decode(conf['plugins']['updater']['pubkey']).decode().splitlines()
+          pub_key_id = base64.b64decode(pub[1])[2:10]
+
+          sigs = glob.glob('src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig')
+          if not sigs:
+              sys.exit('FAIL: no .app.tar.gz.sig was produced. createUpdaterArtifacts or the signing key is not taking effect.')
+
+          raw = open(sigs[0]).read().strip()
+          try:
+              box = base64.b64decode(raw).decode()          # Tauri base64-encodes the whole minisign box
+              if not box.startswith('untrusted comment'):
+                  raise ValueError
+          except Exception:
+              box = raw                                       # plain minisign box
+          sig_key_id = base64.b64decode(box.splitlines()[1])[2:10]
+
+          print('signature file:', sigs[0])
+          print('pubkey  key id:', pub_key_id[::-1].hex().upper())
+          print('sig     key id:', sig_key_id[::-1].hex().upper())
+          if pub_key_id != sig_key_id:
+              sys.exit('FAIL: TAURI_SIGNING_PRIVATE_KEY does not match plugins.updater.pubkey. Installed apps would reject this update.')
+          print('OK: updater artifacts are signed with the configured key pair.')
+          PY
+
+      - name: Upload signature for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-signature
+          path: src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.sig
+          if-no-files-found: ignore
