@@ -141,13 +141,10 @@ export function playSound(type: 'levelChange' | 'warning' | 'break'): void {
 }
 
 // GitHub update checker
-export const CURRENT_VERSION = '1.3.1'
+export const CURRENT_VERSION = '1.3.2'
 const GITHUB_REPO = 'davidelvar/pokerpulsepro-tauri'
 const UPDATE_CHECK_KEY = 'pokerpulse_update_check'
 const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000 // 1 hour in milliseconds
-
-// Check if running in Tauri
-const isTauri = typeof window !== 'undefined' && '__TAURI__' in window
 
 export interface UpdateInfo {
   updateAvailable: boolean
@@ -188,7 +185,7 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
     }
 
     // Try Tauri updater first if available
-    if (isTauri) {
+    if (isTauriRuntime()) {
       try {
         const { check } = await import('@tauri-apps/plugin-updater')
         const update = await check()
@@ -263,7 +260,7 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
 
 // Download and install update using Tauri updater
 export async function downloadAndInstallUpdate(updateInfo: UpdateInfo): Promise<boolean> {
-  if (!isTauri) {
+  if (!isTauriRuntime()) {
     // Not in Tauri - open website
     window.open(updateInfo.downloadUrl, '_blank')
     return false
