@@ -381,6 +381,7 @@ Contributions welcome! Please open an issue or PR.
 - **🔒 Security Updates** - Dependency refresh resolving 42 of 43 Dependabot alerts
   - Tauri core 2.9 → 2.11 (fixes an IPC origin-confusion advisory) plus OpenSSL, tar, time and other runtime crates
   - Build tooling moved to Vite 7 with current vitest, esbuild and postcss; nothing from these ships in the app
+  - Tauri JavaScript packages (`@tauri-apps/api`, plugins, CLI) aligned with the Rust crates; the CLI refuses to build when their minor versions differ
 - **🛠️ Release Tooling** - New `updater-signing-check` workflow dry-runs a signed build and verifies the signature matches the app's public key before a release
 
 ### v1.3.1
